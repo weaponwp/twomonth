@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><script type="text/javascript" charset="utf-8" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/changyan.js"></script>
+<meta charset="UTF-8">
+<link rel="dns-prefetch" href="http://apps.bdimg.com/">
+<meta http-equiv="X-UA-Compatible" content="IE=11,IE=10,IE=9,IE=8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-title" content="HollisChuang's Blog">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+<title>Java对象的序列化与反序列化-HollisChuang's Blog</title>
+		<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"http:\/\/s.w.org\/images\/core\/emoji\/72x72\/","ext":".png","source":{"concatemoji":"http:\/\/www.hollischuang.com\/wp-includes\/js\/wp-emoji-release.min.js?ver=4.2.15"}};
+			!function(a,b,c){function d(a){var c=b.createElement("canvas"),d=c.getContext&&c.getContext("2d");return d&&d.fillText?(d.textBaseline="top",d.font="600 32px Arial","flag"===a?(d.fillText(String.fromCharCode(55356,56812,55356,56807),0,0),c.toDataURL().length>3e3):(d.fillText(String.fromCharCode(55357,56835),0,0),0!==d.getImageData(16,16,1,1).data[0])):!1}function e(a){var c=b.createElement("script");c.src=a,c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var f,g;c.supports={simple:d("simple"),flag:d("flag")},c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.simple&&c.supports.flag||(g=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",g,!1),a.addEventListener("load",g,!1)):(a.attachEvent("onload",g),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),f=c.source||{},f.concatemoji?e(f.concatemoji):f.wpemoji&&f.twemoji&&(e(f.twemoji),e(f.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script><script src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wp-emoji-release.js" type="text/javascript"></script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+<link rel="stylesheet" id="wp-player-css" href="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wp-player.css" type="text/css" media="screen">
+<link rel="stylesheet" id="_bootstrap-css" href="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/bootstrap.css" type="text/css" media="all">
+<link rel="stylesheet" id="_fontawesome-css" href="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/font-awesome.css" type="text/css" media="all">
+<link rel="stylesheet" id="_main-css" href="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/main.css" type="text/css" media="all">
+<link rel="stylesheet" id="wp-markdown-prettify-css" href="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/prettify.css" type="text/css" media="all">
+<link rel="stylesheet" id="douban_collections-css" href="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/douban-collections.css" type="text/css" media="screen">
+<script type="text/javascript" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/jquery.js"></script>
+<script type="text/javascript" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/prettify.js"></script>
+<link rel="prev" title="单例与序列化的那些事儿" href="http://www.hollischuang.com/archives/1144">
+<link rel="next" title="《成神之路-基础篇》Java基础知识——序列化（已完结）" href="http://www.hollischuang.com/archives/1158">
+<link rel="canonical" href="http://www.hollischuang.com/archives/1150">
+<link rel="shortlink" href="http://www.hollischuang.com/?p=1150">
+<meta name="keywords" content="序列化, Java">
+<meta name="description" content="序列化与反序列化  序列化 (Serialization)是将对象的状态信息转换为可以存储或传输的形式的过程。一般将一个对象存储至一个储存媒介，例如档案或是记亿体缓冲等。在网络传输过程中，可以是字节或是XML等格式。而字节的或XML编码格式可以还原完全相等的对象。这个相反的过程又称为反序列化。  Java对象的序列化与反序列化  在Java中，我们可以通过多">
+<style>a:hover, .site-navbar li:hover > a, .site-navbar li.active a:hover, .site-navbar a:hover, .search-on .site-navbar li.navto-search a, .topbar a:hover, .site-nav li.current-menu-item > a, .site-nav li.current-menu-parent > a, .site-search-form a:hover, .branding-primary .btn:hover, .title .more a:hover, .excerpt h2 a:hover, .excerpt .meta a:hover, .excerpt-minic h2 a:hover, .excerpt-minic .meta a:hover, .article-content .wp-caption:hover .wp-caption-text, .article-content a, .article-nav a:hover, .relates a:hover, .widget_links li a:hover, .widget_categories li a:hover, .widget_ui_comments strong, .widget_ui_posts li a:hover .text, .widget_ui_posts .nopic .text:hover , .widget_meta ul a:hover, .tagcloud a:hover, .textwidget a:hover, .sign h3, #navs .item li a, .url, .url:hover{color: #2CDB87;}.btn-primary, .label-primary, .branding-primary, .post-copyright:hover, .article-tags a, .pagination ul > .active > a, .pagination ul > .active > span, .pagenav .current, .widget_ui_tags .items a:hover, .sign .close-link, .pagemenu li.active a, .pageheader, .resetpasssteps li.active, #navs h2, #navs nav, .btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary.active, .open > .dropdown-toggle.btn-primary, .tag-clouds a:hover{background-color: #2CDB87;}.btn-primary, .search-input:focus, #bdcs .bdcs-search-form-input:focus, #submit, .plinks ul li a:hover,.btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary.active, .open > .dropdown-toggle.btn-primary{border-color: #2CDB87;}.search-btn, .label-primary, #bdcs .bdcs-search-form-submit, #submit, .excerpt .cat{background-color: #2CDB87;}.excerpt .cat i{border-left-color:#2CDB87;}@media (max-width: 720px) {.site-navbar li.active a, .site-navbar li.active a:hover, .m-nav-show .m-icon-nav{color: #2CDB87;}}@media (max-width: 480px) {.pagination ul > li.next-page a{background-color:#2CDB87;}}<meta name="baidu_union_verify" content="4a8bd1a9881911c8738ed782f83b5757"></style>
+<!--HEADER_CODE_START-->
+<meta name="baidu_union_verify" content="4a8bd1a9881911c8738ed782f83b5757">
+<!--HEADER_CODE_END-->
+<link rel="shortcut icon" href="http://www.hollischuang.com/favicon.ico">
+<!--[if lt IE 9]><script src="http://www.hollischuang.com/wp-content/themes/dux/js/libs/html5.min.js"></script><![endif]-->
+<script type="text/javascript" charset="UTF-8" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/version-v3.js"></script><script type="text/javascript" charset="UTF-8" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/cookie.js"></script><script type="text/javascript" charset="UTF-8" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/adapter.js"></script><script type="text/javascript" charset="UTF-8" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/cyrFnsBtC.js"></script><script async="" data-requirecontext="_" data-requiremodule="main" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/main.js"></script><script src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/share.js"></script><script type="text/javascript" charset="UTF-8" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/start.js"></script><script async="" data-requirecontext="_" data-requiremodule="prettyprint" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/prettyprint.js"></script><script async="" data-requirecontext="_" data-requiremodule="signpop" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/signpop.js"></script><script async="" data-requirecontext="_" data-requiremodule="comment" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/comment.js"></script></head>
+<body class="single single-post postid-1150 single-format-standard comment-open site-layout-2">
+<header class="header">
+	<div class="container">
+		<div class="logo"><a href="http://www.hollischuang.com/" title="HollisChuang's Blog-Java干货集散地"><img src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/logo.png">HollisChuang's Blog</a></div>		<div class="brand">天道不一定酬所有勤<br>但是，天道只酬勤<br></div>		<ul class="site-nav site-navbar">
+			<li id="menu-item-174" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-174"><a href="http://www.hollischuang.com/">首页</a></li>
+<li id="menu-item-165" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-165"><a href="http://www.hollischuang.com/archives/category/java">爪哇</a></li>
+<li id="menu-item-166" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-166"><a href="http://www.hollischuang.com/archives/category/%e6%a1%86%e6%9e%b6">框架</a>
+<ul class="sub-menu">
+	<li id="menu-item-831" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-831"><a href="http://www.hollischuang.com/archives/category/%e6%a1%86%e6%9e%b6/webx">webx</a></li>
+	<li id="menu-item-830" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-830"><a href="http://www.hollischuang.com/archives/category/%e6%a1%86%e6%9e%b6/spring">spring</a></li>
+	<li id="menu-item-829" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-829"><a href="http://www.hollischuang.com/archives/category/%e6%a1%86%e6%9e%b6/ibatis">ibatis</a></li>
+	<li id="menu-item-1824" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1824"><a href="http://www.hollischuang.com/archives/category/%e4%b8%ad%e9%97%b4%e4%bb%b6/jboss">jboss</a></li>
+</ul>
+</li>
+<li id="menu-item-825" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-825"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8">综合应用</a>
+<ul class="sub-menu">
+	<li id="menu-item-826" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-826"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e5%88%86%e5%b8%83%e5%bc%8f">分布式</a></li>
+	<li id="menu-item-828" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-828"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e7%83%ad%e9%83%a8%e7%bd%b2">热部署</a></li>
+	<li id="menu-item-1441" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1441"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e7%bd%91%e7%ab%99%e6%9e%b6%e6%9e%84">网站架构</a></li>
+	<li id="menu-item-1442" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1442"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e8%ae%be%e8%ae%a1%e6%a8%a1%e5%bc%8f">设计模式</a></li>
+	<li id="menu-item-827" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-827"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e5%8d%95%e5%85%83%e6%b5%8b%e8%af%95">单元测试</a></li>
+</ul>
+</li>
+<li id="menu-item-832" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-832"><a href="http://www.hollischuang.com/archives/category/%e6%93%8d%e4%bd%9c%e7%b3%bb%e7%bb%9f">操作系统</a>
+<ul class="sub-menu">
+	<li id="menu-item-833" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-833"><a href="http://www.hollischuang.com/archives/category/%e6%93%8d%e4%bd%9c%e7%b3%bb%e7%bb%9f/linux">Linux</a></li>
+	<li id="menu-item-834" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-834"><a href="http://www.hollischuang.com/archives/category/%e6%93%8d%e4%bd%9c%e7%b3%bb%e7%bb%9f/mac-os">mac os</a></li>
+</ul>
+</li>
+<li id="menu-item-169" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-169"><a href="http://www.hollischuang.com/archives/category/debug">异常</a></li>
+<li id="menu-item-173" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-173"><a href="http://www.hollischuang.com/archives/category/%e5%85%b6%e4%bb%96">其他</a></li>
+							<li class="navto-search"><a href="javascript:;" class="search-show active"><i class="fa fa-search"></i></a></li>
+					</ul>
+		<div class="topbar">
+			<ul class="site-nav topmenu">
+				<li id="menu-item-161" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-161"><a href="http://www.hollischuang.com/list">文章归档</a></li>
+<li id="menu-item-1127" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1127"><a href="http://www.hollischuang.com/%e9%98%85%e8%af%bb%e4%b9%a6%e5%8d%95">阅读书单</a></li>
+<li id="menu-item-1473" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1473"><a href="http://www.hollischuang.com/%e5%b8%b8%e7%94%a8%e5%b7%a5%e5%85%b7">常用工具</a></li>
+<li id="menu-item-997" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-997"><a href="http://www.hollischuang.com/%e8%bd%ac%e8%bd%bd%e8%af%b4%e6%98%8e">版权说明</a></li>
+<li id="menu-item-986" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-986"><a href="http://www.hollischuang.com/%e4%ba%ba%e6%89%8d%e6%8b%9b%e8%81%98">人才招聘</a></li>
+<li id="menu-item-163" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-163"><a href="http://www.hollischuang.com/sample-page">关于作者</a></li>
+				<li class="menusns">
+					<a href="javascript:;">关注本站 <i class="fa fa-angle-down"></i></a>
+					<ul class="sub-menu">
+						<li><a class="sns-wechat" href="javascript:;" title="关注”HollisChuang“" data-src="http://www.hollischuang.com/wp-content/uploads/2016/01/qrcode_for_gh_4ebd1b130cbe_430-1-e1453007336936.jpg"><i class="fa fa-wechat"></i> 微信</a></li>						<li><a target="_blank" rel="external nofollow" href="http://weibo.com/hollischuang"><i class="fa fa-weibo"></i> 微博</a></li>						<li><a target="_blank" href="http://www.hollischuang.com/feed/"><i class="fa fa-rss"></i> RSS订阅</a></li>					</ul>
+				</li>
+			</ul>
+			Hi,Welcome To HollisChuang's Blog		</div>
+		<i class="fa fa-bars m-icon-nav"></i>
+	</div>
+</header>
+<div class="site-search">
+	<div class="container">
+		<form method="get" class="site-search-form" action="http://www.hollischuang.com/"><input class="search-input" name="s" placeholder="输入关键字" type="text"><button class="search-btn" type="submit"><i class="fa fa-search"></i></button></form>	</div>
+</div><section class="container">
+	<div class="content-wrap">
+	<div class="content">
+				<header class="article-header">
+			<h1 class="article-title"><a href="http://www.hollischuang.com/archives/1150">Java对象的序列化与反序列化</a></h1>
+			<div class="article-meta">
+				<span class="item">2016-02-17</span>
+								<span class="item">分类：<a href="http://www.hollischuang.com/archives/category/java" rel="category tag">Java</a></span>
+				<span class="item post-views">阅读(6119)</span>
+				<span class="item">评论(3)</span>
+				<span class="item"><br><br>本站采用[<a href="http://creativecommons.org/licenses/by-nc-sa/3.0/deed.zh" target="_blank">知识共享署名-非商业性使用-相同方式共享 许可协议</a>]进行许可，转载请在<code>正文明显处</code>注明原文地址</span></div></header>
+		<article class="article-content">
+			<div class="asb asb-post asb-post-01"><script type="text/javascript">
+    /*960*60 创建于 2015-12-16*/
+    var cpro_id = "u2451530";
+</script>
+<script src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/c.js" type="text/javascript"></script><div id="BAIDU_SSP__wrapper_u2451530_0"><iframe id="iframeu2451530_0" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/hcem.htm" vspace="0" hspace="0" marginwidth="0" marginheight="0" scrolling="no" style="border:0;vertical-align:bottom;margin:0;width:960px;height:60px" allowtransparency="true" width="960" height="60" align="center,center" frameborder="0"></iframe></div>
+</div>			<h2>序列化与反序列化</h2>
+<p>序列化 
+(Serialization)是将对象的状态信息转换为可以存储或传输的形式的过程。一般将一个对象存储至一个储存媒介，例如档案或是记亿体缓冲等。在
+网络传输过程中，可以是字节或是XML等格式。而字节的或XML编码格式可以还原完全相等的对象。这个相反的过程又称为反序列化。</p>
+<h2>Java对象的序列化与反序列化</h2>
+<p>在Java中，我们可以通过多种方式来创建对象，并且只要对象没有被回收我们都可以复用该对象。但是，我们创建出来的这些Java对象都是存在于
+JVM的堆内存中的。只有JVM处于运行状态的时候，这些对象才可能存在。一旦JVM停止运行，这些对象的状态也就随之而丢失了。</p>
+<p>但是在真实的应用场景中，我们需要将这些对象持久化下来，并且能够在需要的时候把对象重新读取出来。Java的对象序列化可以帮助我们实现该功能。</p>
+<p>对象序列化机制（object 
+serialization）是Java语言内建的一种对象持久化方式，通过对象序列化，可以把对象的状态保存为字节数组，并且可以在有需要的时候将这个
+字节数组通过反序列化的方式再转换成对象。对象序列化可以很容易的在JVM中的活动对象和字节数组（流）之间进行转换。</p>
+<p>在Java中，对象的序列化与反序列化被广泛应用到RMI(远程方法调用)及网络传输中。</p>
+<h2>相关接口及类</h2>
+<p>Java为了方便开发人员将Java对象进行序列化及反序列化提供了一套方便的API来支持。其中包括以下接口和类：</p>
+<blockquote>
+<p>java.io.Serializable</p>
+<p>java.io.Externalizable</p>
+<p>ObjectOutput</p>
+<p>ObjectInput</p>
+<p>ObjectOutputStream</p>
+<p>ObjectInputStream</p>
+</blockquote>
+<h2>Serializable 接口</h2>
+<p>类通过实现 <code>java.io.Serializable</code> 接口以启用其序列化功能。未实现此接口的类将无法使其任何状态序列化或反序列化。可序列化类的所有子类型本身都是可序列化的。<strong>序列化接口没有方法或字段，仅用于标识可序列化的语义。</strong> (<a href="http://www.hollischuang.com/archives/1140#What%20Serializable%20Did">该接口并没有方法和字段，为什么只有实现了该接口的类的对象才能被序列化呢？</a>)</p>
+<p>当试图对一个对象进行序列化的时候，如果遇到不支持 Serializable 接口的对象。在此情况下，将抛出 <code>NotSerializableException</code>。</p>
+<p>如果要序列化的类有父类，要想同时将在父类中定义过的变量持久化下来，那么父类也应该集成<code>java.io.Serializable</code>接口。</p>
+<p>下面是一个实现了<code>java.io.Serializable</code>接口的类</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd"><span class="kwd">package</span></span><span class="pln"><span class="pln"> com</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">hollischaung</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">serialization</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">SerializableDemos</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">Serializable</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+</span></span><span class="com"><span class="com">/**
+ * Created by hollis on 16/2/17.
+ * 实现Serializable接口
+ */</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">class</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">User1</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">implements</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">Serializable</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">private</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="kwd"><span class="kwd">private</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">int</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> getName</span></span><span class="pun"><span class="pun">()</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">return</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> setName</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">this</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">name </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">int</span></span><span class="pln"><span class="pln"> getAge</span></span><span class="pun"><span class="pun">()</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">return</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> setAge</span></span><span class="pun"><span class="pun">(</span></span><span class="kwd"><span class="kwd">int</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">this</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">age </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="lit"><span class="lit">@Override</span></span><span class="pln"><span class="pln">
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> toString</span></span><span class="pun"><span class="pun">()</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">return</span></span><span class="pln"><span class="pln"> </span></span><span class="str"><span class="str">"User{"</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln">
+                </span></span><span class="str"><span class="str">"name='"</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln"> name </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln"> </span></span><span class="str"><span class="str">'\''</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln">
+                </span></span><span class="str"><span class="str">", age="</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln"> age </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln">
+                </span></span><span class="str"><span class="str">'}'</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+</span></span><span class="pun"><span class="pun">}</span></span></code></pre>
+<p>通过下面的代码进行序列化及反序列化</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd"><span class="kwd">package</span></span><span class="pln"><span class="pln"> com</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">hollischaung</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">serialization</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">SerializableDemos</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> org</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">apache</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">commons</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">FileUtils</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> org</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">apache</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">commons</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">IOUtils</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.*;</span></span><span class="pln"><span class="pln">
+</span></span><span class="com"><span class="com">/**
+ * Created by hollis on 16/2/17.
+ * SerializableDemo1 结合SerializableDemo2说明 一个类要想被序列化必须实现Serializable接口
+ */</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">class</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">SerializableDemo1</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">static</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> main</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">String</span></span><span class="pun"><span class="pun">[]</span></span><span class="pln"><span class="pln"> args</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="com"><span class="com">//Initializes The Object</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">User1</span></span><span class="pln"><span class="pln"> user </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">User1</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+        user</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">setName</span></span><span class="pun"><span class="pun">(</span></span><span class="str"><span class="str">"hollis"</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        user</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">setAge</span></span><span class="pun"><span class="pun">(</span></span><span class="lit"><span class="lit">23</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">System</span></span><span class="pun"><span class="pun">.</span></span><span class="kwd"><span class="kwd">out</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">println</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">user</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+
+        </span></span><span class="com"><span class="com">//Write Obj to File</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">ObjectOutputStream</span></span><span class="pln"><span class="pln"> oos </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">null</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">try</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+            oos </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ObjectOutputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">FileOutputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="str"><span class="str">"tempFile"</span></span><span class="pun"><span class="pun">));</span></span><span class="pln"><span class="pln">
+            oos</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">writeObject</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">user</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">catch</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">IOException</span></span><span class="pln"><span class="pln"> e</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+            e</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">printStackTrace</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+        </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">finally</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+            </span></span><span class="typ"><span class="typ">IOUtils</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">closeQuietly</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">oos</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+        </span></span><span class="com"><span class="com">//Read Obj from File</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">File</span></span><span class="pln"><span class="pln"> file </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">File</span></span><span class="pun"><span class="pun">(</span></span><span class="str"><span class="str">"tempFile"</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">ObjectInputStream</span></span><span class="pln"><span class="pln"> ois </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">null</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">try</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+            ois </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ObjectInputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">FileInputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">file</span></span><span class="pun"><span class="pun">));</span></span><span class="pln"><span class="pln">
+            </span></span><span class="typ"><span class="typ">User1</span></span><span class="pln"><span class="pln"> newUser </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">User1</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> ois</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">readObject</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+            </span></span><span class="typ"><span class="typ">System</span></span><span class="pun"><span class="pun">.</span></span><span class="kwd"><span class="kwd">out</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">println</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">newUser</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">catch</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">IOException</span></span><span class="pln"><span class="pln"> e</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+            e</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">printStackTrace</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+        </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">catch</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">ClassNotFoundException</span></span><span class="pln"><span class="pln"> e</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+            e</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">printStackTrace</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+        </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">finally</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+            </span></span><span class="typ"><span class="typ">IOUtils</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">closeQuietly</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">ois</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+            </span></span><span class="kwd"><span class="kwd">try</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+                </span></span><span class="typ"><span class="typ">FileUtils</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">forceDelete</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">file</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+            </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">catch</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">IOException</span></span><span class="pln"><span class="pln"> e</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+                e</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">printStackTrace</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+            </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+        </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+</span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="com"><span class="com">//OutPut:</span></span><span class="pln"><span class="pln">
+</span></span><span class="com"><span class="com">//User{name='hollis', age=23}</span></span><span class="pln"><span class="pln">
+</span></span><span class="com"><span class="com">//User{name='hollis', age=23}</span></span></code></pre>
+<p>更多关于Serializable的使用，请参考<a href="https://github.com/hollischuang/java-demo/tree/master/src/main/java/com/hollischaung/serialization/SerializableDemos">代码实例</a></p>
+<h2>Externalizable接口</h2>
+<p>除了Serializable 之外，java中还提供了另一个序列化接口<code>Externalizable</code></p>
+<p>为了了解Externalizable接口和Serializable接口的区别，先来看代码，我们把上面的代码改成使用Externalizable的形式。</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd"><span class="kwd">package</span></span><span class="pln"><span class="pln"> com</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">hollischaung</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">serialization</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">ExternalizableDemos</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">Externalizable</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">IOException</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">ObjectInput</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">ObjectOutput</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="com"><span class="com">/**
+ * Created by hollis on 16/2/17.
+ * 实现Externalizable接口
+ */</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">class</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">User1</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">implements</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">Externalizable</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">private</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="kwd"><span class="kwd">private</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">int</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> getName</span></span><span class="pun"><span class="pun">()</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">return</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> setName</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">this</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">name </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">int</span></span><span class="pln"><span class="pln"> getAge</span></span><span class="pun"><span class="pun">()</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">return</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> setAge</span></span><span class="pun"><span class="pun">(</span></span><span class="kwd"><span class="kwd">int</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">this</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">age </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> writeExternal</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">ObjectOutput</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">out</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">throws</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">IOException</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> readExternal</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">ObjectInput</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">in</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">throws</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">IOException</span></span><span class="pun"><span class="pun">,</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ClassNotFoundException</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="lit"><span class="lit">@Override</span></span><span class="pln"><span class="pln">
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> toString</span></span><span class="pun"><span class="pun">()</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">return</span></span><span class="pln"><span class="pln"> </span></span><span class="str"><span class="str">"User{"</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln">
+                </span></span><span class="str"><span class="str">"name='"</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln"> name </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln"> </span></span><span class="str"><span class="str">'\''</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln">
+                </span></span><span class="str"><span class="str">", age="</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln"> age </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln">
+                </span></span><span class="str"><span class="str">'}'</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+</span></span><span class="pun"><span class="pun">}</span></span></code></pre>
+<p>&nbsp;</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd"><span class="kwd">package</span></span><span class="pln"><span class="pln"> com</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">hollischaung</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">serialization</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">ExternalizableDemos</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.*;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="com"><span class="com">/**
+ * Created by hollis on 16/2/17.
+ */</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">class</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ExternalizableDemo1</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="com"><span class="com">//为了便于理解和节省篇幅，忽略关闭流操作及删除文件操作。真正编码时千万不要忘记</span></span><span class="pln"><span class="pln">
+    </span></span><span class="com"><span class="com">//IOException直接抛出</span></span><span class="pln"><span class="pln">
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">static</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> main</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">String</span></span><span class="pun"><span class="pun">[]</span></span><span class="pln"><span class="pln"> args</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">throws</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">IOException</span></span><span class="pun"><span class="pun">,</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ClassNotFoundException</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="com"><span class="com">//Write Obj to file</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">ObjectOutputStream</span></span><span class="pln"><span class="pln"> oos </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ObjectOutputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">FileOutputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="str"><span class="str">"tempFile"</span></span><span class="pun"><span class="pun">));</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">User1</span></span><span class="pln"><span class="pln"> user </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">User1</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+        user</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">setName</span></span><span class="pun"><span class="pun">(</span></span><span class="str"><span class="str">"hollis"</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        user</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">setAge</span></span><span class="pun"><span class="pun">(</span></span><span class="lit"><span class="lit">23</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        oos</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">writeObject</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">user</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="com"><span class="com">//Read Obj from file</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">File</span></span><span class="pln"><span class="pln"> file </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">File</span></span><span class="pun"><span class="pun">(</span></span><span class="str"><span class="str">"tempFile"</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">ObjectInputStream</span></span><span class="pln"><span class="pln"> ois </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln">  </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ObjectInputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">FileInputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">file</span></span><span class="pun"><span class="pun">));</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">User1</span></span><span class="pln"><span class="pln"> newInstance </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">User1</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> ois</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">readObject</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+        </span></span><span class="com"><span class="com">//output</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">System</span></span><span class="pun"><span class="pun">.</span></span><span class="kwd"><span class="kwd">out</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">println</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">newInstance</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+</span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+</span></span><span class="com"><span class="com">//OutPut:</span></span><span class="pln"><span class="pln">
+</span></span><span class="com"><span class="com">//User{name='null', age=0}</span></span></code></pre>
+<p>通过上面的实例可以发现，对User1类进行序列化及反序列化之后得到的对象的所有属性的值都变成了默认值。也就是说，之前的那个对象的状态并没有被持久化下来。这就是Externalizable接口和Serializable接口的区别：</p>
+<p>Externalizable继承了Serializable，该接口中定义了两个抽象方法：<code>writeExternal()</code>与<code>readExternal()</code>。当使用Externalizable接口来进行序列化与反序列化的时候需要开发人员重写<code>writeExternal()</code>与<code>readExternal()</code>方
+法。由于上面的代码中，并没有在这两个方法中定义序列化实现细节，所以输出的内容为空。还有一点值得注意：在使用Externalizable进行序列化
+的时候，在读取对象时，会调用被序列化类的无参构造器去创建一个新的对象，然后再将被保存对象的字段的值分别填充到新对象中。所以，实现
+Externalizable接口的类必须要提供一个public的无参的构造器。</p>
+<p>按照要求修改之后代码如下：</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd"><span class="kwd">package</span></span><span class="pln"><span class="pln"> com</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">hollischaung</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">serialization</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">ExternalizableDemos</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">Externalizable</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">IOException</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">ObjectInput</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">ObjectOutput</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="com"><span class="com">/**
+ * Created by hollis on 16/2/17.
+ * 实现Externalizable接口,并实现writeExternal和readExternal方法
+ */</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">class</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">User2</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">implements</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">Externalizable</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">private</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="kwd"><span class="kwd">private</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">int</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> getName</span></span><span class="pun"><span class="pun">()</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">return</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> setName</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">this</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">name </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> name</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">int</span></span><span class="pln"><span class="pln"> getAge</span></span><span class="pun"><span class="pun">()</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">return</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> setAge</span></span><span class="pun"><span class="pun">(</span></span><span class="kwd"><span class="kwd">int</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">this</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">age </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> age</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> writeExternal</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">ObjectOutput</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">out</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">throws</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">IOException</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">out</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">writeObject</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">name</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">out</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">writeInt</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">age</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> readExternal</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">ObjectInput</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">in</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">throws</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">IOException</span></span><span class="pun"><span class="pun">,</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ClassNotFoundException</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        name </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">String</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">in</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">readObject</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+        age </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">in</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">readInt</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="lit"><span class="lit">@Override</span></span><span class="pln"><span class="pln">
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">String</span></span><span class="pln"><span class="pln"> toString</span></span><span class="pun"><span class="pun">()</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="kwd"><span class="kwd">return</span></span><span class="pln"><span class="pln"> </span></span><span class="str"><span class="str">"User{"</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln">
+                </span></span><span class="str"><span class="str">"name='"</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln"> name </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln"> </span></span><span class="str"><span class="str">'\''</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln">
+                </span></span><span class="str"><span class="str">", age="</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln"> age </span></span><span class="pun"><span class="pun">+</span></span><span class="pln"><span class="pln">
+                </span></span><span class="str"><span class="str">'}'</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+</span></span><span class="pun"><span class="pun">}</span></span></code></pre>
+<p>&nbsp;</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd"><span class="kwd">package</span></span><span class="pln"><span class="pln"> com</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">hollischaung</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">serialization</span></span><span class="pun"><span class="pun">.</span></span><span class="typ"><span class="typ">ExternalizableDemos</span></span><span class="pun"><span class="pun">;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="kwd"><span class="kwd">import</span></span><span class="pln"><span class="pln"> java</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">io</span></span><span class="pun"><span class="pun">.*;</span></span><span class="pln"><span class="pln">
+
+</span></span><span class="com"><span class="com">/**
+ * Created by hollis on 16/2/17.
+ */</span></span><span class="pln"><span class="pln">
+</span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">class</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ExternalizableDemo2</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+
+    </span></span><span class="com"><span class="com">//为了便于理解和节省篇幅，忽略关闭流操作及删除文件操作。真正编码时千万不要忘记</span></span><span class="pln"><span class="pln">
+    </span></span><span class="com"><span class="com">//IOException直接抛出</span></span><span class="pln"><span class="pln">
+    </span></span><span class="kwd"><span class="kwd">public</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">static</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">void</span></span><span class="pln"><span class="pln"> main</span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">String</span></span><span class="pun"><span class="pun">[]</span></span><span class="pln"><span class="pln"> args</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">throws</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">IOException</span></span><span class="pun"><span class="pun">,</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ClassNotFoundException</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">{</span></span><span class="pln"><span class="pln">
+        </span></span><span class="com"><span class="com">//Write Obj to file</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">ObjectOutputStream</span></span><span class="pln"><span class="pln"> oos </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ObjectOutputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">FileOutputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="str"><span class="str">"tempFile"</span></span><span class="pun"><span class="pun">));</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">User2</span></span><span class="pln"><span class="pln"> user </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">User2</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+        user</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">setName</span></span><span class="pun"><span class="pun">(</span></span><span class="str"><span class="str">"hollis"</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        user</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">setAge</span></span><span class="pun"><span class="pun">(</span></span><span class="lit"><span class="lit">23</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        oos</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">writeObject</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">user</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="com"><span class="com">//Read Obj from file</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">File</span></span><span class="pln"><span class="pln"> file </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">File</span></span><span class="pun"><span class="pun">(</span></span><span class="str"><span class="str">"tempFile"</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">ObjectInputStream</span></span><span class="pln"><span class="pln"> ois </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln">  </span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">ObjectInputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="kwd"><span class="kwd">new</span></span><span class="pln"><span class="pln"> </span></span><span class="typ"><span class="typ">FileInputStream</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">file</span></span><span class="pun"><span class="pun">));</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">User2</span></span><span class="pln"><span class="pln"> newInstance </span></span><span class="pun"><span class="pun">=</span></span><span class="pln"><span class="pln"> </span></span><span class="pun"><span class="pun">(</span></span><span class="typ"><span class="typ">User2</span></span><span class="pun"><span class="pun">)</span></span><span class="pln"><span class="pln"> ois</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">readObject</span></span><span class="pun"><span class="pun">();</span></span><span class="pln"><span class="pln">
+        </span></span><span class="com"><span class="com">//output</span></span><span class="pln"><span class="pln">
+        </span></span><span class="typ"><span class="typ">System</span></span><span class="pun"><span class="pun">.</span></span><span class="kwd"><span class="kwd">out</span></span><span class="pun"><span class="pun">.</span></span><span class="pln"><span class="pln">println</span></span><span class="pun"><span class="pun">(</span></span><span class="pln"><span class="pln">newInstance</span></span><span class="pun"><span class="pun">);</span></span><span class="pln"><span class="pln">
+    </span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+</span></span><span class="pun"><span class="pun">}</span></span><span class="pln"><span class="pln">
+</span></span><span class="com"><span class="com">//OutPut:</span></span><span class="pln"><span class="pln">
+</span></span><span class="com"><span class="com">//User{name='hollis', age=23}</span></span></code></pre>
+<p>这次，就可以把之前的对象状态持久化下来了。</p>
+<blockquote>
+<p>如果User类中没有无参数的构造函数，在运行时会抛出异常：<code>java.io.InvalidClassException</code></p>
+</blockquote>
+<p>更多Externalizable接口使用实例请参考<a href="https://github.com/hollischuang/java-demo/tree/master/src/main/java/com/hollischaung/serialization/ExternalizableDemos">代码实例</a></p>
+<h2>ObjectOutput和ObjectInput 接口</h2>
+<p>ObjectInput接口 扩展自 DataInput 接口以包含对象的读操作。</p>
+<blockquote>
+<p>DataInput 接口用于从二进制流中读取字节，并根据所有 Java 基本类型数据进行重构。同时还提供根据 UTF-8 修改版格式的数据重构 String 的工具。</p>
+<p>对于此接口中的所有数据读取例程来说，如果在读取所需字节数之前已经到达文件末尾 (end of file)，则将抛出 
+EOFException（IOException 的一种）。如果因为到达文件末尾以外的其他原因无法读取字节，则将抛出 IOException 
+而不是 EOFException。尤其是，在输入流已关闭的情况下，将抛出 IOException。</p>
+</blockquote>
+<p>ObjectOutput 扩展 DataOutput 接口以包含对象的写入操作。</p>
+<blockquote>
+<p>DataOutput 接口用于将数据从任意 Java 基本类型转换为一系列字节，并将这些字节写入二进制流。同时还提供了一个将 String 转换成 UTF-8 修改版格式并写入所得到的系列字节的工具。</p>
+<p>对于此接口中写入字节的所有方法，如果由于某种原因无法写入某个字节，则抛出 IOException。</p>
+</blockquote>
+<h2>ObjectOutputStream类和ObjectInputStream类</h2>
+<p>通过前面的代码片段中我们也能知道，我们一般使用ObjectOutputStream的<code>writeObject</code>方法把一个对象进行持久化。再使用ObjectInputStream的<code>readObject</code>从持久化存储中把对象读取出来。</p>
+<p>更多关于ObjectInputStream和ObjectOutputStream的相关知识欢迎阅读我的另外两篇博文：<a href="http://www.hollischuang.com/archives/1140">深入分析Java的序列化与反序列化</a>、<a href="http://www.hollischuang.com/archives/1144">单例与序列化的那些事儿</a></p>
+<h2>Transient 关键字</h2>
+<p>Transient 
+关键字的作用是控制变量的序列化，在变量声明前加上该关键字，可以阻止该变量被序列化到文件中，在被反序列化后，transient 
+变量的值被设为初始值，如 int 型的是 0，对象型的是 null。关于Transient 关键字的拓展知识欢迎阅读<a href="http://www.hollischuang.com/archives/1140">深入分析Java的序列化与反序列化</a></p>
+<h2>序列化ID</h2>
+<p>虚拟机是否允许反序列化，不仅取决于类路径和功能代码是否一致，一个非常重要的一点是两个类的序列化 ID 是否一致（就是 <code>private static final long serialVersionUID</code>)</p>
+<p>序列化 ID 在 Eclipse 下提供了两种生成策略，一个是固定的 1L，一个是随机生成一个不重复的 long 类型数据（实际上是使用 
+JDK 工具生成），在这里有一个建议，如果没有特殊需求，就是用默认的 1L 就可以，这样可以确保代码一致时反序列化成功。那么随机生成的序列化 
+ID 有什么作用呢，有些时候，通过改变序列化 ID 可以用来限制某些用户的使用。</p>
+<h2>参考资料</h2>
+<p><a href="https://zh.wikipedia.org/wiki/%E5%BA%8F%E5%88%97%E5%8C%96">维基百科</a></p>
+<p><a href="http://www.blogjava.net/jiangshachina/archive/2012/02/13/369898.html">理解Java对象序列化</a></p>
+<p><a href="https://www.ibm.com/developerworks/cn/java/j-lo-serial/">Java 序列化的高级认识</a></p>
+<h2>推荐阅读</h2>
+<p><a href="http://www.hollischuang.com/archives/1140">深入分析Java的序列化与反序列化</a></p>
+<p><a href="http://www.hollischuang.com/archives/1144">单例与序列化的那些事儿</a></p>
+<p class="asb-post-footer"><strong>【公告】</strong><a target="_blank" href="http://www.hollischuang.com/%E8%BD%AC%E8%BD%BD%E8%AF%B4%E6%98%8E">版权声明</a></p>(全文完)<center><img src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/qrcode_for_gh_4ebd1b130cbe_430-1.jpg" title="" alt="" width="300px" height="300px">欢迎关注HollisChuang微信公众账号</center>        <div class="gave" style="clear:both">
+            <a href="javascript:;" id="gave">打赏</a>
+            <div class="code" id="wechatCode" style="display: none">
+                <img src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/IMG_11933.jpg" alt="微信扫一扫支付">
+                <div>支付宝扫一扫，打赏作者吧～</div>
+            </div>
+        </div><p class="post-copyright">如未加特殊说明，此网站文章均为原创，转载必须注明出处。<a href="http://www.hollischuang.com/">HollisChuang's Blog</a> » <a href="http://www.hollischuang.com/archives/1150">Java对象的序列化与反序列化</a></p>		</article>
+				<div class="article-tags">标签：<a href="http://www.hollischuang.com/archives/tag/%e5%ba%8f%e5%88%97%e5%8c%96" rel="tag">序列化</a></div>		<div class="action-share bdsharebuttonbox">
+			分享到：<a class="bds_qzone" data-cmd="qzone"></a><a class="bds_tsina" data-cmd="tsina"></a><a class="bds_weixin" data-cmd="weixin"></a><a class="bds_tqq" data-cmd="tqq"></a><a class="bds_sqq" data-cmd="sqq"></a><a class="bds_bdhome" data-cmd="bdhome"></a><a class="bds_tqf" data-cmd="tqf"></a><a class="bds_renren" data-cmd="renren"></a><a class="bds_diandian" data-cmd="diandian"></a><a class="bds_youdao" data-cmd="youdao"></a><a class="bds_ty" data-cmd="ty"></a><a class="bds_kaixin001" data-cmd="kaixin001"></a><a class="bds_taobao" data-cmd="taobao"></a><a class="bds_douban" data-cmd="douban"></a><a class="bds_fbook" data-cmd="fbook"></a><a class="bds_twi" data-cmd="twi"></a><a class="bds_mail" data-cmd="mail"></a><a class="bds_copy" data-cmd="copy"></a><a class="bds_more" data-cmd="more">更多</a> (<a class="bds_count" data-cmd="count"></a>)		</div>
+	<div class="asb asb-post asb-post-02"><script type="text/javascript">
+    /*960*90 创建于 2015-12-11*/
+    var cpro_id = "u2443812";
+</script>
+<script src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/c.js" type="text/javascript"></script><div id="BAIDU_SSP__wrapper_u2443812_0"><iframe id="iframeu2443812_0" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/hcem_002.htm" vspace="0" hspace="0" marginwidth="0" marginheight="0" scrolling="no" style="border:0;vertical-align:bottom;margin:0;width:960px;height:90px" allowtransparency="true" width="960" height="90" align="center,center" frameborder="0"></iframe></div>
+</div>		<div class="relates"><div class="title"><h3>相关推荐</h3></div><ul><li><a href="http://www.hollischuang.com/archives/1158">《成神之路-基础篇》Java基础知识——序列化（已完结）</a></li><li><a href="http://www.hollischuang.com/archives/1144">单例与序列化的那些事儿</a></li><li><a href="http://www.hollischuang.com/archives/1140">深入分析Java的序列化与反序列化</a></li><li><a href="http://www.hollischuang.com/archives/1786">同步容器（如Vector）并不是所有操作都线程安全！~</a></li><li><a href="http://www.hollischuang.com/archives/1606">排名Top 16的Java实用类库</a></li><li><a href="http://www.hollischuang.com/archives/1561">Java开发必须掌握的线上问题排查命令</a></li><li><a href="http://www.hollischuang.com/archives/1360">Java开发人员最常犯的10个错误</a></li><li><a href="http://www.hollischuang.com/archives/1349">ArrayList vs LinkedList vs Vector 区别</a></li></ul></div><a name="comments"></a>
+<div id="SOHUCS" sid="1150"></div><script>
+if(window.screen.width > 960) {
+    (function(){var appid = 'cyrFnsBtC',conf = 'prod_957fbae232bab98fce4551fdee712071';
+        var doc = document,
+        s = doc.createElement('script'),
+        h = doc.getElementsByTagName('head')[0] || doc.head || doc.documentElement;
+        s.type = 'text/javascript';
+        s.charset = 'utf-8';
+        s.src =  'http://assets.changyan.sohu.com/upload/changyan.js?conf=' + conf + '&appid=' + appid;
+        h.insertBefore(s,h.firstChild);
+    })()
+    } else {
+    (function(){
+        var expire_time = parseInt((new Date()).getTime()/(5*60*1000));
+        var head = document.head || document.getElementsByTagName("head")[0] || document.documentElement;
+        var script_version = document.createElement("script"),script_cyan = document.createElement("script");
+        script_version.type = script_cyan.type = "text/javascript";
+        script_version.charset = script_cyan.charset = "utf-8";
+        script_version.onload = function(){
+            script_cyan.id = 'changyan_mobile_js';
+            script_cyan.src = 'http://changyan.itc.cn/upload/mobile/wap-js/changyan_mobile.js?client_id=cyrFnsBtC&conf=prod_957fbae232bab98fce4551fdee712071&version=cyan_resource_version';
+            head.insertBefore(script_cyan, head.firstChild);
+        };
+        script_version.src = 'http://changyan.sohu.com/upload/mobile/wap-js/version.js?_='+expire_time;
+        head.insertBefore(script_version, head.firstChild);
+    })();
+}</script>
+<div id="ds-ssr" style="display:none">
+		            <ol id="commentlist">
+                		<li class="comment even thread-even depth-1" id="li-comment-189">
+			<article id="comment-189" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">有志竟成</span> on <a rel="nofollow" href="http://www.hollischuang.com/archives/1150#comment-189"><time pubdate="" datetime="2016-02-17T15:30:04+00:00">2016年2月17日 at 下午3:30</time></a> <span class="says">said:</span>					</cite>
+				</footer>
+	
+				<div class="comment-content"><p>亮哥，你的文章好有深度啊，我看得头晕晕的，技术不过关啊[/流汗]</p>
+</div>
+				
+			</article>
+		<ul class="children">
+		<li class="comment odd alt depth-2" id="li-comment-230">
+			<article id="comment-230" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">HollisChuang网友</span> on <a rel="nofollow" href="http://www.hollischuang.com/archives/1150#comment-230"><time pubdate="" datetime="2016-03-14T14:21:05+00:00">2016年3月14日 at 下午2:21</time></a> <span class="says">said:</span>					</cite>
+				</footer>
+	
+				<div class="comment-content"><p>哈哈,作者还是写得很清楚明白, 你看得有点晕,那就要多看看书了</p>
+</div>
+				
+			</article>
+		</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment even thread-odd thread-alt depth-1" id="li-comment-300">
+			<article id="comment-300" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">HollisChuang</span> on <a rel="nofollow" href="http://www.hollischuang.com/archives/1150#comment-300"><time pubdate="" datetime="2016-05-10T18:49:27+00:00">2016年5月10日 at 下午6:49</time></a> <span class="says">said:</span>					</cite>
+				</footer>
+	
+				<div class="comment-content"><p>赞~！</p>
+</div>
+				
+			</article>
+		</li><!-- #comment-## -->
+            </ol>
+
+		    </div>
+	</div>
+	</div>
+			
+	
+	<aside class="sidebar">
+<div class="widget widget_ui_posts"><h3><font color="#00BFFF">【置顶推荐】</font></h3><ul class="nopic"><li><a href="http://www.hollischuang.com/archives/1158"><span class="text">《成神之路-基础篇》Java基础知识——序列化（已完结）</span><span class="muted">2016-02-18</span><span class="muted">评论(1)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/1132"><span class="text">大型网站架构技术一览</span><span class="muted">2016-02-03</span><span class="muted">评论(1)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/1036"><span class="text">[10.17日更新]各大互联网公司架构演进之路汇总</span><span class="muted">2016-01-19</span><span class="muted">评论(6)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/1003"><span class="text">《成神之路-基础篇》JVM——Java内存相关(已完结)</span><span class="muted">2016-01-17</span><span class="muted">评论(3)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/966"><span class="text">Java开发必装的IntelliJ IDEA插件</span><span class="muted">2016-01-13</span><span class="muted">评论(4)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/800"><span class="text">Java开发必会的Linux命令</span><span class="muted">2015-12-15</span><span class="muted">评论(14)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/728"><span class="text">大型网站架构演化历程</span><span class="muted">2015-12-09</span><span class="muted">评论(12)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/489"><span class="text">Java工程师成神之路~</span><span class="muted">2015-08-01</span><span class="muted">评论(33)</span></a></li>
+</ul></div><div class="widget widget_ui_posts affix-top" style="top: 0px;"><h3>【猜你喜欢】</h3><ul class="nopic"><li><a href="http://www.hollischuang.com/archives/1436"><span class="text">This ZooKeeper instance is not currently serving requests</span><span class="muted">2016-04-21</span><span class="muted">评论(1)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/29"><span class="text">webx学习（六）——Request Contexts</span><span class="muted">2015-04-13</span><span class="muted">评论()</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/489"><span class="text">Java工程师成神之路~</span><span class="muted">2015-08-01</span><span class="muted">评论(33)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/546"><span class="text">Mac下使用tree命令</span><span class="muted">2015-09-23</span><span class="muted">评论()</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/1132"><span class="text">大型网站架构技术一览</span><span class="muted">2016-02-03</span><span class="muted">评论(1)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/1728"><span class="text">MySQL中的读锁和写锁</span><span class="muted">2016-11-12</span><span class="muted">评论(5)</span></a></li>
+</ul></div><div class="widget widget_ui_ads"><div class="item"><script type="text/javascript">
+    /*360*300 创建于 2015-12-11*/
+    var cpro_id = "u2443824";
+</script>
+<script src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/c.js" type="text/javascript"></script><div id="BAIDU_SSP__wrapper_u2443824_0"><iframe id="iframeu2443824_0" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/hcem_003.htm" vspace="0" hspace="0" marginwidth="0" marginheight="0" scrolling="no" style="border:0;vertical-align:bottom;margin:0;width:360px;height:300px" allowtransparency="true" width="360" height="300" align="center,center" frameborder="0"></iframe></div>
+</div></div><div class="widget widget_ui_tags"><h3>热门标签</h3><div class="items"><a href="http://www.hollischuang.com/archives/tag/webx">webx (12)</a><a href="http://www.hollischuang.com/archives/tag/%e4%ba%8b%e5%8a%a1">事务 (11)</a><a href="http://www.hollischuang.com/archives/tag/java%e5%b7%a5%e7%a8%8b%e5%b8%88%e6%88%90%e7%a5%9e%e4%b9%8b%e8%b7%af">Java工程师成神之路 (10)</a><a href="http://www.hollischuang.com/archives/tag/java%e5%91%bd%e4%bb%a4%e5%ad%a6%e4%b9%a0%e7%b3%bb%e5%88%97">Java命令学习系列 (9)</a><a href="http://www.hollischuang.com/archives/tag/string">String (8)</a><a href="http://www.hollischuang.com/archives/tag/%e5%88%86%e5%b8%83%e5%bc%8f">分布式 (8)</a><a href="http://www.hollischuang.com/archives/tag/webx%e5%ad%a6%e4%b9%a0%e7%b3%bb%e5%88%97">webx学习系列 (6)</a><a href="http://www.hollischuang.com/archives/tag/generic">泛型 (6)</a><a href="http://www.hollischuang.com/archives/tag/zookeeper">zookeeper (6)</a><a href="http://www.hollischuang.com/archives/tag/java">Java (5)</a><a href="http://www.hollischuang.com/archives/tag/%e5%8d%95%e5%85%83%e6%b5%8b%e8%af%95">单元测试 (5)</a><a href="http://www.hollischuang.com/archives/tag/%e9%94%81">锁 (5)</a><a href="http://www.hollischuang.com/archives/tag/%e5%b7%a5%e5%8e%82%e6%a8%a1%e5%bc%8f">工厂模式 (5)</a><a href="http://www.hollischuang.com/archives/tag/linux">linux (4)</a><a href="http://www.hollischuang.com/archives/tag/%e5%ba%8f%e5%88%97%e5%8c%96">序列化 (4)</a><a href="http://www.hollischuang.com/archives/tag/java-7-%e6%ba%90%e7%a0%81%e5%ad%a6%e4%b9%a0%e7%b3%bb%e5%88%97">Java 7 源码学习系列 (4)</a><a href="http://www.hollischuang.com/archives/tag/%e7%83%ad%e9%83%a8%e7%bd%b2">热部署 (4)</a><a href="http://www.hollischuang.com/archives/tag/%e5%9b%be%e8%af%b4java">图说Java (4)</a><a href="http://www.hollischuang.com/archives/tag/%e9%9d%a2%e8%af%95%e9%a2%98">面试题 (3)</a><a href="http://www.hollischuang.com/archives/tag/%e6%9e%9a%e4%b8%be">枚举 (3)</a><a href="http://www.hollischuang.com/archives/tag/jvm">jvm (3)</a><a href="http://www.hollischuang.com/archives/tag/%e5%8d%95%e4%be%8b">单例 (3)</a><a href="http://www.hollischuang.com/archives/tag/%e7%bd%91%e7%ab%99%e6%9e%b6%e6%9e%84">网站架构 (3)</a><a href="http://www.hollischuang.com/archives/tag/%e5%a5%bd%e4%b9%a6%e6%8e%a8%e8%8d%90">好书推荐 (3)</a><a href="http://www.hollischuang.com/archives/tag/mysql">MySql (3)</a><a href="http://www.hollischuang.com/archives/tag/fail-fast">fail-fast (2)</a><a href="http://www.hollischuang.com/archives/tag/sql">sql (2)</a><a href="http://www.hollischuang.com/archives/tag/jre">JRE (2)</a><a href="http://www.hollischuang.com/archives/tag/classloader">ClassLoader (2)</a><a href="http://www.hollischuang.com/archives/tag/%e7%ba%bf%e7%a8%8b%e5%ae%89%e5%85%a8">线程安全 (2)</a></div></div></aside></section>
+
+<div class="branding branding-black">
+	<div class="container">
+		<h2>HollisChuang's Blog</h2>
+		<a target="blank" class="btn btn-lg" href="http://mail.qq.com/cgi-bin/qm_share?t=qm_mailme&amp;email=-JSTkJCVj5_UiZ2Sm7yNjdKfk5E">联系我</a><a target="blank" class="btn btn-lg" href="http://www.hollischuang.com/sample-page">关于我</a>	</div>
+</div>
+<footer class="footer">
+	<div class="container">
+		<p>© 2017 <a href="http://www.hollischuang.com/">HollisChuang's Blog</a> &nbsp; <a href="http://www.hollischuang.com/sitemap.xml">网站地图</a>|<a href="http://www.aliyun.com/" target="_blank">阿里云</a>|<a href="http://www.alibaba.com/" target="_blank">Alibaba.com</a>|<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1256611093'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s4.cnzz.com/z_stat.php%3Fid%3D1256611093%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script><span id="cnzz_stat_icon_1256611093"><a href="http://www.cnzz.com/stat/website.php?web_id=1256611093" target="_blank" title="站长统计"><img src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/pic.gif" vspace="0" hspace="0" border="0"></a></span><script src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/z_stat.php" type="text/javascript"></script><script src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/core.php" charset="utf-8" type="text/javascript"></script></p>
+		<meta name="baidu_union_verify" content="4a8bd1a9881911c8738ed782f83b5757">	</div>
+</footer>
+
+<script>
+window.jsui={
+    www: 'http://www.hollischuang.com',
+    uri: 'http://www.hollischuang.com/wp-content/themes/dux',
+    ver: 'THEME_VERSION',
+	roll: ["2","6"],
+    ajaxpager: '2',
+    url_rp: 'http://www.hollischuang.com/sample-page'
+};
+</script>
+<!--FOOTER_CODE_START-->
+<meta name="baidu_union_verify" content="4a8bd1a9881911c8738ed782f83b5757">
+<!--FOOTER_CODE_END-->
+<link rel="stylesheet" id="wechat-reward-css" href="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wechat-reward.css" type="text/css" media="all">
+<script type="text/javascript" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/soundmanager2.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var wp_player_params = {"swf":"http:\/\/www.hollischuang.com\/wp-content\/plugins\/wp-player\/js\/","url":"http:\/\/www.hollischuang.com\/wp-admin\/admin-ajax.php","nonce":"c4a1037915","single":"true"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wp-player.js"></script>
+<script type="text/javascript" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/bootstrap.js"></script>
+<script type="text/javascript" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/loader.js"></script>
+<script type="text/javascript" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wechat-reward.js"></script>
+<script type="text/javascript" src="Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/markdown.js"></script>
+
+
+
+
+
+    <div class="m-mask"></div>    <div class="rollbar"><ul><li><a href="javascript:(scrollTo('#comments',-15));"><i class="fa fa-comments"></i></a><h6>去评论<i></i></h6></li><li><a href="javascript:(scrollTo());"><i class="fa fa-angle-up"></i></a><h6>去顶部<i></i></h6></li>    </ul></div>			<div class="sign">			    <div class="sign-mask"></div>			    <div class="container">			        <a href="#" class="close-link signclose-loader"><i class="fa fa-close"></i></a>			        <div class="sign-tips"></div>			        <form id="sign-in">  			            <h3><small class="signup-loader">切换注册</small>登录</h3>			            <h6>			                <label for="inputEmail">邮箱</label>			                <input name="email" class="form-control" id="inputEmail" placeholder="登录邮箱" type="email">			            </h6>			            <h6>			                <label for="inputPassword">密码</label>			                <input name="password" class="form-control" id="inputPassword" placeholder="登录密码" type="password">			            </h6>			            <div class="sign-submit">			                <input class="btn btn-primary signsubmit-loader" name="submit" value="登录" type="button">  			                <input name="action" value="signin" type="hidden">			                <label><input checked="checked" name="remember" value="forever" type="checkbox">记住我</label>			            </div><div class="sign-info"><a href="http://www.hollischuang.com/sample-page">找回密码？</a></div></form>			        <form id="sign-up"> 			            <h3><small class="signin-loader">切换登录</small>注册</h3>			            <h6>			                <label for="inputName">昵称</label>			                <input name="name" class="form-control" id="inputName" placeholder="设置昵称" type="text">			            </h6>			            <h6>			                <label for="inputEmail">邮箱</label>			                <input name="email" class="form-control" id="inputEmail" placeholder="邮箱" type="email">			            </h6>			            <h6>			                <label for="inputPassword">密码</label>			                <input name="password" class="form-control" id="inputPassword" placeholder="设置登录密码" type="password">			            </h6>			            <div class="sign-submit">			                <input class="btn btn-primary btn-block signsubmit-loader" name="submit" value="快速注册" type="button">  			                <input name="action" value="signup" type="hidden">  			            </div>			        </form>			    </div>			</div>		</body></html>
+<!-- Dynamic page generated in 0.349 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2017-07-22 13:00:13 -->
+<!-- super cache -->

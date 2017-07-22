@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><script type="text/javascript" charset="utf-8" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/changyan.js"></script>
+<meta charset="UTF-8">
+<link rel="dns-prefetch" href="http://apps.bdimg.com/">
+<meta http-equiv="X-UA-Compatible" content="IE=11,IE=10,IE=9,IE=8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-title" content="HollisChuang's Blog">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+<title>深入分析Java的序列化与反序列化-HollisChuang's Blog</title>
+		<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"http:\/\/s.w.org\/images\/core\/emoji\/72x72\/","ext":".png","source":{"concatemoji":"http:\/\/www.hollischuang.com\/wp-includes\/js\/wp-emoji-release.min.js?ver=4.2.15"}};
+			!function(a,b,c){function d(a){var c=b.createElement("canvas"),d=c.getContext&&c.getContext("2d");return d&&d.fillText?(d.textBaseline="top",d.font="600 32px Arial","flag"===a?(d.fillText(String.fromCharCode(55356,56812,55356,56807),0,0),c.toDataURL().length>3e3):(d.fillText(String.fromCharCode(55357,56835),0,0),0!==d.getImageData(16,16,1,1).data[0])):!1}function e(a){var c=b.createElement("script");c.src=a,c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var f,g;c.supports={simple:d("simple"),flag:d("flag")},c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.simple&&c.supports.flag||(g=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",g,!1),a.addEventListener("load",g,!1)):(a.attachEvent("onload",g),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),f=c.source||{},f.concatemoji?e(f.concatemoji):f.wpemoji&&f.twemoji&&(e(f.twemoji),e(f.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script><script src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wp-emoji-release.js" type="text/javascript"></script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+<link rel="stylesheet" id="wp-player-css" href="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wp-player.css" type="text/css" media="screen">
+<link rel="stylesheet" id="_bootstrap-css" href="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/bootstrap.css" type="text/css" media="all">
+<link rel="stylesheet" id="_fontawesome-css" href="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/font-awesome.css" type="text/css" media="all">
+<link rel="stylesheet" id="_main-css" href="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/main.css" type="text/css" media="all">
+<link rel="stylesheet" id="wp-markdown-prettify-css" href="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/prettify.css" type="text/css" media="all">
+<link rel="stylesheet" id="douban_collections-css" href="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/douban-collections.css" type="text/css" media="screen">
+<script type="text/javascript" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/jquery.js"></script>
+<script type="text/javascript" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/prettify.js"></script>
+<link rel="prev" title="大型网站架构技术一览" href="http://www.hollischuang.com/archives/1132">
+<link rel="next" title="单例与序列化的那些事儿" href="http://www.hollischuang.com/archives/1144">
+<link rel="canonical" href="http://www.hollischuang.com/archives/1140">
+<link rel="shortlink" href="http://www.hollischuang.com/?p=1140">
+<meta name="keywords" content="ArrayList, 序列化, Java">
+<meta name="description" content="序列化是一种对象持久化的手段。普遍应用在网络传输、RMI等场景中。本文通过分析ArrayList的序列化来介绍Java序列化的相关内容。主要涉及到以下几个问题：     怎么实现Java的序列化      为什么实现了java.io.Serializable接口才能被序列化      transient的作用是什么      怎么自定义序列化策略      ">
+<style>a:hover, .site-navbar li:hover > a, .site-navbar li.active a:hover, .site-navbar a:hover, .search-on .site-navbar li.navto-search a, .topbar a:hover, .site-nav li.current-menu-item > a, .site-nav li.current-menu-parent > a, .site-search-form a:hover, .branding-primary .btn:hover, .title .more a:hover, .excerpt h2 a:hover, .excerpt .meta a:hover, .excerpt-minic h2 a:hover, .excerpt-minic .meta a:hover, .article-content .wp-caption:hover .wp-caption-text, .article-content a, .article-nav a:hover, .relates a:hover, .widget_links li a:hover, .widget_categories li a:hover, .widget_ui_comments strong, .widget_ui_posts li a:hover .text, .widget_ui_posts .nopic .text:hover , .widget_meta ul a:hover, .tagcloud a:hover, .textwidget a:hover, .sign h3, #navs .item li a, .url, .url:hover{color: #2CDB87;}.btn-primary, .label-primary, .branding-primary, .post-copyright:hover, .article-tags a, .pagination ul > .active > a, .pagination ul > .active > span, .pagenav .current, .widget_ui_tags .items a:hover, .sign .close-link, .pagemenu li.active a, .pageheader, .resetpasssteps li.active, #navs h2, #navs nav, .btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary.active, .open > .dropdown-toggle.btn-primary, .tag-clouds a:hover{background-color: #2CDB87;}.btn-primary, .search-input:focus, #bdcs .bdcs-search-form-input:focus, #submit, .plinks ul li a:hover,.btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary.active, .open > .dropdown-toggle.btn-primary{border-color: #2CDB87;}.search-btn, .label-primary, #bdcs .bdcs-search-form-submit, #submit, .excerpt .cat{background-color: #2CDB87;}.excerpt .cat i{border-left-color:#2CDB87;}@media (max-width: 720px) {.site-navbar li.active a, .site-navbar li.active a:hover, .m-nav-show .m-icon-nav{color: #2CDB87;}}@media (max-width: 480px) {.pagination ul > li.next-page a{background-color:#2CDB87;}}<meta name="baidu_union_verify" content="4a8bd1a9881911c8738ed782f83b5757"></style>
+<!--HEADER_CODE_START-->
+<meta name="baidu_union_verify" content="4a8bd1a9881911c8738ed782f83b5757">
+<!--HEADER_CODE_END-->
+<link rel="shortcut icon" href="http://www.hollischuang.com/favicon.ico">
+<!--[if lt IE 9]><script src="http://www.hollischuang.com/wp-content/themes/dux/js/libs/html5.min.js"></script><![endif]-->
+<script type="text/javascript" charset="UTF-8" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/version-v3.js"></script><script type="text/javascript" charset="UTF-8" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/cookie.js"></script><script type="text/javascript" charset="UTF-8" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/adapter.js"></script><script async="" data-requirecontext="_" data-requiremodule="main" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/main.js"></script><script src="http://bdimg.share.baidu.com/static/api/js/share.js?cdnversion=416868"></script><script async="" data-requirecontext="_" data-requiremodule="prettyprint" src="http://www.hollischuang.com/wp-content/themes/dux/js/libs/prettyprint.js?ver=THEME_VERSION"></script><script async="" data-requirecontext="_" data-requiremodule="signpop" src="http://www.hollischuang.com/wp-content/themes/dux/js/signpop.js?ver=THEME_VERSION"></script><script async="" data-requirecontext="_" data-requiremodule="comment" src="http://www.hollischuang.com/wp-content/themes/dux/js/comment.js?ver=THEME_VERSION"></script></head>
+<body class="single single-post postid-1140 single-format-standard comment-open site-layout-2">
+<header class="header">
+	<div class="container">
+		<div class="logo"><a href="http://www.hollischuang.com/" title="HollisChuang's Blog-Java干货集散地"><img src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/logo.png">HollisChuang's Blog</a></div>		<div class="brand">天道不一定酬所有勤<br>但是，天道只酬勤<br></div>		<ul class="site-nav site-navbar">
+			<li id="menu-item-174" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-174"><a href="http://www.hollischuang.com/">首页</a></li>
+<li id="menu-item-165" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-165"><a href="http://www.hollischuang.com/archives/category/java">爪哇</a></li>
+<li id="menu-item-166" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-166"><a href="http://www.hollischuang.com/archives/category/%e6%a1%86%e6%9e%b6">框架</a>
+<ul class="sub-menu">
+	<li id="menu-item-831" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-831"><a href="http://www.hollischuang.com/archives/category/%e6%a1%86%e6%9e%b6/webx">webx</a></li>
+	<li id="menu-item-830" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-830"><a href="http://www.hollischuang.com/archives/category/%e6%a1%86%e6%9e%b6/spring">spring</a></li>
+	<li id="menu-item-829" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-829"><a href="http://www.hollischuang.com/archives/category/%e6%a1%86%e6%9e%b6/ibatis">ibatis</a></li>
+	<li id="menu-item-1824" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1824"><a href="http://www.hollischuang.com/archives/category/%e4%b8%ad%e9%97%b4%e4%bb%b6/jboss">jboss</a></li>
+</ul>
+</li>
+<li id="menu-item-825" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-825"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8">综合应用</a>
+<ul class="sub-menu">
+	<li id="menu-item-826" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-826"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e5%88%86%e5%b8%83%e5%bc%8f">分布式</a></li>
+	<li id="menu-item-828" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-828"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e7%83%ad%e9%83%a8%e7%bd%b2">热部署</a></li>
+	<li id="menu-item-1441" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1441"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e7%bd%91%e7%ab%99%e6%9e%b6%e6%9e%84">网站架构</a></li>
+	<li id="menu-item-1442" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1442"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e8%ae%be%e8%ae%a1%e6%a8%a1%e5%bc%8f">设计模式</a></li>
+	<li id="menu-item-827" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-827"><a href="http://www.hollischuang.com/archives/category/%e7%bb%bc%e5%90%88%e5%ba%94%e7%94%a8/%e5%8d%95%e5%85%83%e6%b5%8b%e8%af%95">单元测试</a></li>
+</ul>
+</li>
+<li id="menu-item-832" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-832"><a href="http://www.hollischuang.com/archives/category/%e6%93%8d%e4%bd%9c%e7%b3%bb%e7%bb%9f">操作系统</a>
+<ul class="sub-menu">
+	<li id="menu-item-833" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-833"><a href="http://www.hollischuang.com/archives/category/%e6%93%8d%e4%bd%9c%e7%b3%bb%e7%bb%9f/linux">Linux</a></li>
+	<li id="menu-item-834" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-834"><a href="http://www.hollischuang.com/archives/category/%e6%93%8d%e4%bd%9c%e7%b3%bb%e7%bb%9f/mac-os">mac os</a></li>
+</ul>
+</li>
+<li id="menu-item-169" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-169"><a href="http://www.hollischuang.com/archives/category/debug">异常</a></li>
+<li id="menu-item-173" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-173"><a href="http://www.hollischuang.com/archives/category/%e5%85%b6%e4%bb%96">其他</a></li>
+							<li class="navto-search"><a href="javascript:;" class="search-show active"><i class="fa fa-search"></i></a></li>
+					</ul>
+		<div class="topbar">
+			<ul class="site-nav topmenu">
+				<li id="menu-item-161" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-161"><a href="http://www.hollischuang.com/list">文章归档</a></li>
+<li id="menu-item-1127" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1127"><a href="http://www.hollischuang.com/%e9%98%85%e8%af%bb%e4%b9%a6%e5%8d%95">阅读书单</a></li>
+<li id="menu-item-1473" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1473"><a href="http://www.hollischuang.com/%e5%b8%b8%e7%94%a8%e5%b7%a5%e5%85%b7">常用工具</a></li>
+<li id="menu-item-997" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-997"><a href="http://www.hollischuang.com/%e8%bd%ac%e8%bd%bd%e8%af%b4%e6%98%8e">版权说明</a></li>
+<li id="menu-item-986" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-986"><a href="http://www.hollischuang.com/%e4%ba%ba%e6%89%8d%e6%8b%9b%e8%81%98">人才招聘</a></li>
+<li id="menu-item-163" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-163"><a href="http://www.hollischuang.com/sample-page">关于作者</a></li>
+				<li class="menusns">
+					<a href="javascript:;">关注本站 <i class="fa fa-angle-down"></i></a>
+					<ul class="sub-menu">
+						<li><a class="sns-wechat" href="javascript:;" title="关注”HollisChuang“" data-src="http://www.hollischuang.com/wp-content/uploads/2016/01/qrcode_for_gh_4ebd1b130cbe_430-1-e1453007336936.jpg"><i class="fa fa-wechat"></i> 微信</a></li>						<li><a target="_blank" rel="external nofollow" href="http://weibo.com/hollischuang"><i class="fa fa-weibo"></i> 微博</a></li>						<li><a target="_blank" href="http://www.hollischuang.com/feed/"><i class="fa fa-rss"></i> RSS订阅</a></li>					</ul>
+				</li>
+			</ul>
+			Hi,Welcome To HollisChuang's Blog		</div>
+		<i class="fa fa-bars m-icon-nav"></i>
+	</div>
+</header>
+<div class="site-search">
+	<div class="container">
+		<form method="get" class="site-search-form" action="http://www.hollischuang.com/"><input class="search-input" name="s" placeholder="输入关键字" type="text"><button class="search-btn" type="submit"><i class="fa fa-search"></i></button></form>	</div>
+</div><section class="container">
+	<div class="content-wrap">
+	<div class="content">
+				<header class="article-header">
+			<h1 class="article-title"><a href="http://www.hollischuang.com/archives/1140">深入分析Java的序列化与反序列化</a></h1>
+			<div class="article-meta">
+				<span class="item">2016-02-03</span>
+								<span class="item">分类：<a href="http://www.hollischuang.com/archives/category/java" rel="category tag">Java</a></span>
+				<span class="item post-views">阅读(8455)</span>
+				<span class="item">评论(5)</span>
+				<span class="item"><br><br>本站采用[<a href="http://creativecommons.org/licenses/by-nc-sa/3.0/deed.zh" target="_blank">知识共享署名-非商业性使用-相同方式共享 许可协议</a>]进行许可，转载请在<code>正文明显处</code>注明原文地址</span></div></header>
+		<article class="article-content">
+			<div class="asb asb-post asb-post-01"><script type="text/javascript">
+    /*960*60 创建于 2015-12-16*/
+    var cpro_id = "u2451530";
+</script>
+<script src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/c.js" type="text/javascript"></script><div id="BAIDU_SSP__wrapper_u2451530_0"><iframe id="iframeu2451530_0" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/jcom.htm" vspace="0" hspace="0" marginwidth="0" marginheight="0" scrolling="no" style="border:0;vertical-align:bottom;margin:0;width:960px;height:60px" allowtransparency="true" width="960" height="60" align="center,center" frameborder="0"></iframe></div>
+</div>			<p>序列化是一种对象持久化的手段。普遍应用在网络传输、RMI等场景中。本文通过分析ArrayList的序列化来介绍Java序列化的相关内容。主要涉及到以下几个问题：</p>
+<blockquote>
+<p>怎么实现Java的序列化</p>
+<p>为什么实现了java.io.Serializable接口才能被序列化</p>
+<p>transient的作用是什么</p>
+<p>怎么自定义序列化策略</p>
+<p>自定义的序列化策略是如何被调用的</p>
+<p>ArrayList对序列化的实现有什么好处</p>
+</blockquote>
+<h2>Java对象的序列化</h2>
+<p>Java平台允许我们在内存中创建可复用的Java对象，但一般情况下，只有当JVM处于运行时，这些对象才可能存在，即，这些对象的生命周期不会
+比JVM的生命周期更长。但在现实应用中，就可能要求在JVM停止运行之后能够保存(持久化)指定的对象，并在将来重新读取被保存的对象。Java对象序
+列化就能够帮助我们实现该功能。</p>
+<p>使用Java对象序列化，在保存对象时，会把其状态保存为一组字节，在未来，再将这些字节组装成对象。必须注意地是，对象序列化保存的是对象的”状态”，即它的成员变量。由此可知，<strong>对象序列化不会关注类中的静态变量</strong>。</p>
+<p>除了在持久化对象时会用到对象序列化之外，当使用RMI(远程方法调用)，或在网络中传递对象时，都会用到对象序列化。Java序列化API为处理对象序列化提供了一个标准机制，该API简单易用。</p>
+<h2>如何对Java对象进行序列化与反序列化</h2>
+<p>在Java中，只要一个类实现了<code>java.io.Serializable</code>接口，那么它就可以被序列化。这里先来一段代码：</p>
+<p>code 1 创建一个User类，用于序列化及反序列化</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd">package</span><span class="pln"> com</span><span class="pun">.</span><span class="pln">hollis</span><span class="pun">;</span><span class="pln">
+</span><span class="kwd">import</span><span class="pln"> java</span><span class="pun">.</span><span class="pln">io</span><span class="pun">.</span><span class="typ">Serializable</span><span class="pun">;</span><span class="pln">
+</span><span class="kwd">import</span><span class="pln"> java</span><span class="pun">.</span><span class="pln">util</span><span class="pun">.</span><span class="typ">Date</span><span class="pun">;</span><span class="pln">
+
+</span><span class="com">/**
+ * Created by hollis on 16/2/2.
+ */</span><span class="pln">
+</span><span class="kwd">public</span><span class="pln"> </span><span class="kwd">class</span><span class="pln"> </span><span class="typ">User</span><span class="pln"> </span><span class="kwd">implements</span><span class="pln"> </span><span class="typ">Serializable</span><span class="pun">{</span><span class="pln">
+    </span><span class="kwd">private</span><span class="pln"> </span><span class="typ">String</span><span class="pln"> name</span><span class="pun">;</span><span class="pln">
+    </span><span class="kwd">private</span><span class="pln"> </span><span class="kwd">int</span><span class="pln"> age</span><span class="pun">;</span><span class="pln">
+    </span><span class="kwd">private</span><span class="pln"> </span><span class="typ">Date</span><span class="pln"> birthday</span><span class="pun">;</span><span class="pln">
+    </span><span class="kwd">private</span><span class="pln"> </span><span class="kwd">transient</span><span class="pln"> </span><span class="typ">String</span><span class="pln"> gender</span><span class="pun">;</span><span class="pln">
+    </span><span class="kwd">private</span><span class="pln"> </span><span class="kwd">static</span><span class="pln"> </span><span class="kwd">final</span><span class="pln"> </span><span class="kwd">long</span><span class="pln"> serialVersionUID </span><span class="pun">=</span><span class="pln"> </span><span class="pun">-</span><span class="lit">6849794470754667710L</span><span class="pun">;</span><span class="pln">
+
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="typ">String</span><span class="pln"> getName</span><span class="pun">()</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">return</span><span class="pln"> name</span><span class="pun">;</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="kwd">void</span><span class="pln"> setName</span><span class="pun">(</span><span class="typ">String</span><span class="pln"> name</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">this</span><span class="pun">.</span><span class="pln">name </span><span class="pun">=</span><span class="pln"> name</span><span class="pun">;</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="kwd">int</span><span class="pln"> getAge</span><span class="pun">()</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">return</span><span class="pln"> age</span><span class="pun">;</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="kwd">void</span><span class="pln"> setAge</span><span class="pun">(</span><span class="kwd">int</span><span class="pln"> age</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">this</span><span class="pun">.</span><span class="pln">age </span><span class="pun">=</span><span class="pln"> age</span><span class="pun">;</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="typ">Date</span><span class="pln"> getBirthday</span><span class="pun">()</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">return</span><span class="pln"> birthday</span><span class="pun">;</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="kwd">void</span><span class="pln"> setBirthday</span><span class="pun">(</span><span class="typ">Date</span><span class="pln"> birthday</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">this</span><span class="pun">.</span><span class="pln">birthday </span><span class="pun">=</span><span class="pln"> birthday</span><span class="pun">;</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="typ">String</span><span class="pln"> getGender</span><span class="pun">()</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">return</span><span class="pln"> gender</span><span class="pun">;</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="kwd">void</span><span class="pln"> setGender</span><span class="pun">(</span><span class="typ">String</span><span class="pln"> gender</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">this</span><span class="pun">.</span><span class="pln">gender </span><span class="pun">=</span><span class="pln"> gender</span><span class="pun">;</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+
+    </span><span class="lit">@Override</span><span class="pln">
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="typ">String</span><span class="pln"> toString</span><span class="pun">()</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">return</span><span class="pln"> </span><span class="str">"User{"</span><span class="pln"> </span><span class="pun">+</span><span class="pln">
+                </span><span class="str">"name='"</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> name </span><span class="pun">+</span><span class="pln"> </span><span class="str">'\''</span><span class="pln"> </span><span class="pun">+</span><span class="pln">
+                </span><span class="str">", age="</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> age </span><span class="pun">+</span><span class="pln">
+                </span><span class="str">", gender="</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> gender </span><span class="pun">+</span><span class="pln">
+                </span><span class="str">", birthday="</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> birthday </span><span class="pun">+</span><span class="pln">
+                </span><span class="str">'}'</span><span class="pun">;</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+</span><span class="pun">}</span></code></pre>
+<p>code 2 对User进行序列化及反序列化的Demo</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd">package</span><span class="pln"> com</span><span class="pun">.</span><span class="pln">hollis</span><span class="pun">;</span><span class="pln">
+</span><span class="kwd">import</span><span class="pln"> org</span><span class="pun">.</span><span class="pln">apache</span><span class="pun">.</span><span class="pln">commons</span><span class="pun">.</span><span class="pln">io</span><span class="pun">.</span><span class="typ">FileUtils</span><span class="pun">;</span><span class="pln">
+</span><span class="kwd">import</span><span class="pln"> org</span><span class="pun">.</span><span class="pln">apache</span><span class="pun">.</span><span class="pln">commons</span><span class="pun">.</span><span class="pln">io</span><span class="pun">.</span><span class="typ">IOUtils</span><span class="pun">;</span><span class="pln">
+</span><span class="kwd">import</span><span class="pln"> java</span><span class="pun">.</span><span class="pln">io</span><span class="pun">.*;</span><span class="pln">
+</span><span class="kwd">import</span><span class="pln"> java</span><span class="pun">.</span><span class="pln">util</span><span class="pun">.</span><span class="typ">Date</span><span class="pun">;</span><span class="pln">
+
+</span><span class="com">/**
+ * Created by hollis on 16/2/2.
+ */</span><span class="pln">
+</span><span class="kwd">public</span><span class="pln"> </span><span class="kwd">class</span><span class="pln"> </span><span class="typ">SerializableDemo</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+
+    </span><span class="kwd">public</span><span class="pln"> </span><span class="kwd">static</span><span class="pln"> </span><span class="kwd">void</span><span class="pln"> main</span><span class="pun">(</span><span class="typ">String</span><span class="pun">[]</span><span class="pln"> args</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="com">//Initializes The Object</span><span class="pln">
+        </span><span class="typ">User</span><span class="pln"> user </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">User</span><span class="pun">();</span><span class="pln">
+        user</span><span class="pun">.</span><span class="pln">setName</span><span class="pun">(</span><span class="str">"hollis"</span><span class="pun">);</span><span class="pln">
+        user</span><span class="pun">.</span><span class="pln">setGender</span><span class="pun">(</span><span class="str">"male"</span><span class="pun">);</span><span class="pln">
+        user</span><span class="pun">.</span><span class="pln">setAge</span><span class="pun">(</span><span class="lit">23</span><span class="pun">);</span><span class="pln">
+        user</span><span class="pun">.</span><span class="pln">setBirthday</span><span class="pun">(</span><span class="kwd">new</span><span class="pln"> </span><span class="typ">Date</span><span class="pun">());</span><span class="pln">
+        </span><span class="typ">System</span><span class="pun">.</span><span class="kwd">out</span><span class="pun">.</span><span class="pln">println</span><span class="pun">(</span><span class="pln">user</span><span class="pun">);</span><span class="pln">
+
+        </span><span class="com">//Write Obj to File</span><span class="pln">
+        </span><span class="typ">ObjectOutputStream</span><span class="pln"> oos </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">null</span><span class="pun">;</span><span class="pln">
+        </span><span class="kwd">try</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            oos </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">ObjectOutputStream</span><span class="pun">(</span><span class="kwd">new</span><span class="pln"> </span><span class="typ">FileOutputStream</span><span class="pun">(</span><span class="str">"tempFile"</span><span class="pun">));</span><span class="pln">
+            oos</span><span class="pun">.</span><span class="pln">writeObject</span><span class="pun">(</span><span class="pln">user</span><span class="pun">);</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">catch</span><span class="pln"> </span><span class="pun">(</span><span class="typ">IOException</span><span class="pln"> e</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            e</span><span class="pun">.</span><span class="pln">printStackTrace</span><span class="pun">();</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">finally</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            </span><span class="typ">IOUtils</span><span class="pun">.</span><span class="pln">closeQuietly</span><span class="pun">(</span><span class="pln">oos</span><span class="pun">);</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln">
+
+        </span><span class="com">//Read Obj from File</span><span class="pln">
+        </span><span class="typ">File</span><span class="pln"> file </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">File</span><span class="pun">(</span><span class="str">"tempFile"</span><span class="pun">);</span><span class="pln">
+        </span><span class="typ">ObjectInputStream</span><span class="pln"> ois </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">null</span><span class="pun">;</span><span class="pln">
+        </span><span class="kwd">try</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            ois </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">ObjectInputStream</span><span class="pun">(</span><span class="kwd">new</span><span class="pln"> </span><span class="typ">FileInputStream</span><span class="pun">(</span><span class="pln">file</span><span class="pun">));</span><span class="pln">
+            </span><span class="typ">User</span><span class="pln"> newUser </span><span class="pun">=</span><span class="pln"> </span><span class="pun">(</span><span class="typ">User</span><span class="pun">)</span><span class="pln"> ois</span><span class="pun">.</span><span class="pln">readObject</span><span class="pun">();</span><span class="pln">
+            </span><span class="typ">System</span><span class="pun">.</span><span class="kwd">out</span><span class="pun">.</span><span class="pln">println</span><span class="pun">(</span><span class="pln">newUser</span><span class="pun">);</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">catch</span><span class="pln"> </span><span class="pun">(</span><span class="typ">IOException</span><span class="pln"> e</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            e</span><span class="pun">.</span><span class="pln">printStackTrace</span><span class="pun">();</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">catch</span><span class="pln"> </span><span class="pun">(</span><span class="typ">ClassNotFoundException</span><span class="pln"> e</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            e</span><span class="pun">.</span><span class="pln">printStackTrace</span><span class="pun">();</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">finally</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            </span><span class="typ">IOUtils</span><span class="pun">.</span><span class="pln">closeQuietly</span><span class="pun">(</span><span class="pln">ois</span><span class="pun">);</span><span class="pln">
+            </span><span class="kwd">try</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                </span><span class="typ">FileUtils</span><span class="pun">.</span><span class="pln">forceDelete</span><span class="pun">(</span><span class="pln">file</span><span class="pun">);</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">catch</span><span class="pln"> </span><span class="pun">(</span><span class="typ">IOException</span><span class="pln"> e</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                e</span><span class="pun">.</span><span class="pln">printStackTrace</span><span class="pun">();</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln">
+
+    </span><span class="pun">}</span><span class="pln">
+</span><span class="pun">}</span><span class="pln">
+</span><span class="com">//output </span><span class="pln">
+</span><span class="com">//User{name='hollis', age=23, gender=male, birthday=Tue Feb 02 17:37:38 CST 2016}</span><span class="pln">
+</span><span class="com">//User{name='hollis', age=23, gender=null, birthday=Tue Feb 02 17:37:38 CST 2016}</span></code></pre>
+<h2>序列化及反序列化相关知识</h2>
+<p>1、在Java中，只要一个类实现了<code>java.io.Serializable</code>接口，那么它就可以被序列化。</p>
+<p>2、通过<code>ObjectOutputStream</code>和<code>ObjectInputStream</code>对对象进行序列化及反序列化</p>
+<p>3、虚拟机是否允许反序列化，不仅取决于类路径和功能代码是否一致，一个非常重要的一点是两个类的序列化 ID 是否一致（就是 <code>private static final long serialVersionUID</code>）</p>
+<p>4、序列化并不保存静态变量。</p>
+<p>5、要想将父类对象也序列化，就需要让父类也实现<code>Serializable</code> 接口。</p>
+<p>6、Transient 关键字的作用是控制变量的序列化，在变量声明前加上该关键字，可以阻止该变量被序列化到文件中，在被反序列化后，transient 变量的值被设为初始值，如 int 型的是 0，对象型的是 null。</p>
+<p>7、服务器端给客户端发送序列化对象数据，对象中有一些数据是敏感的，比如密码字符串等，希望对该密码字段在序列化时，进行加密，而客户端如果拥有解密的密钥，只有在客户端进行反序列化时，才可以对密码进行读取，这样可以一定程度保证序列化对象的数据安全。</p>
+<h2>ArrayList的序列化</h2>
+<p>在介绍ArrayList序列化之前，先来考虑一个问题：</p>
+<blockquote>
+<p><strong>如何自定义的序列化和反序列化策略</strong></p>
+</blockquote>
+<p>带着这个问题，我们来看<code>java.util.ArrayList</code>的源码</p>
+<p>code 3</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd">public</span><span class="pln"> </span><span class="kwd">class</span><span class="pln"> </span><span class="typ">ArrayList</span><span class="pun">&lt;</span><span class="pln">E</span><span class="pun">&gt;</span><span class="pln"> </span><span class="kwd">extends</span><span class="pln"> </span><span class="typ">AbstractList</span><span class="pun">&lt;</span><span class="pln">E</span><span class="pun">&gt;</span><span class="pln">
+        </span><span class="kwd">implements</span><span class="pln"> </span><span class="typ">List</span><span class="pun">&lt;</span><span class="pln">E</span><span class="pun">&gt;,</span><span class="pln"> </span><span class="typ">RandomAccess</span><span class="pun">,</span><span class="pln"> </span><span class="typ">Cloneable</span><span class="pun">,</span><span class="pln"> java</span><span class="pun">.</span><span class="pln">io</span><span class="pun">.</span><span class="typ">Serializable</span><span class="pln">
+</span><span class="pun">{</span><span class="pln">
+    </span><span class="kwd">private</span><span class="pln"> </span><span class="kwd">static</span><span class="pln"> </span><span class="kwd">final</span><span class="pln"> </span><span class="kwd">long</span><span class="pln"> serialVersionUID </span><span class="pun">=</span><span class="pln"> </span><span class="lit">8683452581122892189L</span><span class="pun">;</span><span class="pln">
+    </span><span class="kwd">transient</span><span class="pln"> </span><span class="typ">Object</span><span class="pun">[]</span><span class="pln"> elementData</span><span class="pun">;</span><span class="pln"> </span><span class="com">// non-private to simplify nested class access</span><span class="pln">
+    </span><span class="kwd">private</span><span class="pln"> </span><span class="kwd">int</span><span class="pln"> size</span><span class="pun">;</span><span class="pln">
+</span><span class="pun">}</span></code></pre>
+<p>笔者省略了其他成员变量，从上面的代码中可以知道ArrayList实现了<code>java.io.Serializable</code>接口，那么我们就可以对它进行序列化及反序列化。因为elementData是<code>transient</code>的，所以我们认为这个成员变量不会被序列化而保留下来。我们写一个Demo，验证一下我们的想法：</p>
+<p>code 4</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd">public</span><span class="pln"> </span><span class="kwd">static</span><span class="pln"> </span><span class="kwd">void</span><span class="pln"> main</span><span class="pun">(</span><span class="typ">String</span><span class="pun">[]</span><span class="pln"> args</span><span class="pun">)</span><span class="pln"> </span><span class="kwd">throws</span><span class="pln"> </span><span class="typ">IOException</span><span class="pun">,</span><span class="pln"> </span><span class="typ">ClassNotFoundException</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        </span><span class="typ">List</span><span class="pun">&lt;</span><span class="typ">String</span><span class="pun">&gt;</span><span class="pln"> stringList </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">ArrayList</span><span class="pun">&lt;</span><span class="typ">String</span><span class="pun">&gt;();</span><span class="pln">
+        stringList</span><span class="pun">.</span><span class="pln">add</span><span class="pun">(</span><span class="str">"hello"</span><span class="pun">);</span><span class="pln">
+        stringList</span><span class="pun">.</span><span class="pln">add</span><span class="pun">(</span><span class="str">"world"</span><span class="pun">);</span><span class="pln">
+        stringList</span><span class="pun">.</span><span class="pln">add</span><span class="pun">(</span><span class="str">"hollis"</span><span class="pun">);</span><span class="pln">
+        stringList</span><span class="pun">.</span><span class="pln">add</span><span class="pun">(</span><span class="str">"chuang"</span><span class="pun">);</span><span class="pln">
+        </span><span class="typ">System</span><span class="pun">.</span><span class="kwd">out</span><span class="pun">.</span><span class="pln">println</span><span class="pun">(</span><span class="str">"init StringList"</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> stringList</span><span class="pun">);</span><span class="pln">
+        </span><span class="typ">ObjectOutputStream</span><span class="pln"> objectOutputStream </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">ObjectOutputStream</span><span class="pun">(</span><span class="kwd">new</span><span class="pln"> </span><span class="typ">FileOutputStream</span><span class="pun">(</span><span class="str">"stringlist"</span><span class="pun">));</span><span class="pln">
+        objectOutputStream</span><span class="pun">.</span><span class="pln">writeObject</span><span class="pun">(</span><span class="pln">stringList</span><span class="pun">);</span><span class="pln">
+
+        </span><span class="typ">IOUtils</span><span class="pun">.</span><span class="pln">close</span><span class="pun">(</span><span class="pln">objectOutputStream</span><span class="pun">);</span><span class="pln">
+        </span><span class="typ">File</span><span class="pln"> file </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">File</span><span class="pun">(</span><span class="str">"stringlist"</span><span class="pun">);</span><span class="pln">
+        </span><span class="typ">ObjectInputStream</span><span class="pln"> objectInputStream </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">ObjectInputStream</span><span class="pun">(</span><span class="kwd">new</span><span class="pln"> </span><span class="typ">FileInputStream</span><span class="pun">(</span><span class="pln">file</span><span class="pun">));</span><span class="pln">
+        </span><span class="typ">List</span><span class="pun">&lt;</span><span class="typ">String</span><span class="pun">&gt;</span><span class="pln"> newStringList </span><span class="pun">=</span><span class="pln"> </span><span class="pun">(</span><span class="typ">List</span><span class="pun">&lt;</span><span class="typ">String</span><span class="pun">&gt;)</span><span class="pln">objectInputStream</span><span class="pun">.</span><span class="pln">readObject</span><span class="pun">();</span><span class="pln">
+        </span><span class="typ">IOUtils</span><span class="pun">.</span><span class="pln">close</span><span class="pun">(</span><span class="pln">objectInputStream</span><span class="pun">);</span><span class="pln">
+        </span><span class="kwd">if</span><span class="pun">(</span><span class="pln">file</span><span class="pun">.</span><span class="pln">exists</span><span class="pun">()){</span><span class="pln">
+            file</span><span class="pun">.</span><span class="kwd">delete</span><span class="pun">();</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln">
+        </span><span class="typ">System</span><span class="pun">.</span><span class="kwd">out</span><span class="pun">.</span><span class="pln">println</span><span class="pun">(</span><span class="str">"new StringList"</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> newStringList</span><span class="pun">);</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+</span><span class="com">//init StringList[hello, world, hollis, chuang]</span><span class="pln">
+</span><span class="com">//new StringList[hello, world, hollis, chuang]</span></code></pre>
+<p>了解ArrayList的人都知道，ArrayList底层是通过数组实现的。那么数组<code>elementData</code>其实就是用来保存列表中的元素的。通过该属性的声明方式我们知道，他是无法通过序列化持久化下来的。那么为什么code 4的结果却通过序列化和反序列化把List中的元素保留下来了呢？</p>
+<h3>writeObject和readObject方法</h3>
+<p>在ArrayList中定义了来个方法： <code>writeObject</code>和<code>readObject</code>。</p>
+<p>这里先给出结论:</p>
+<blockquote>
+<p>在序列化过程中，如果被序列化的类中定义了writeObject 和 readObject 方法，虚拟机会试图调用对象类里的 writeObject 和 readObject 方法，进行用户自定义的序列化和反序列化。</p>
+<p>如果没有这样的方法，则默认调用是 ObjectOutputStream 的 defaultWriteObject 方法以及 ObjectInputStream 的 defaultReadObject 方法。</p>
+<p>用户自定义的 writeObject 和 readObject 方法可以允许用户控制序列化的过程，比如可以在序列化的过程中动态改变序列化的数值。</p>
+</blockquote>
+<p>来看一下这两个方法的具体实现：</p>
+<p>code 5</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd">private</span><span class="pln"> </span><span class="kwd">void</span><span class="pln"> readObject</span><span class="pun">(</span><span class="pln">java</span><span class="pun">.</span><span class="pln">io</span><span class="pun">.</span><span class="typ">ObjectInputStream</span><span class="pln"> s</span><span class="pun">)</span><span class="pln">
+        </span><span class="kwd">throws</span><span class="pln"> java</span><span class="pun">.</span><span class="pln">io</span><span class="pun">.</span><span class="typ">IOException</span><span class="pun">,</span><span class="pln"> </span><span class="typ">ClassNotFoundException</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+        elementData </span><span class="pun">=</span><span class="pln"> EMPTY_ELEMENTDATA</span><span class="pun">;</span><span class="pln">
+
+        </span><span class="com">// Read in size, and any hidden stuff</span><span class="pln">
+        s</span><span class="pun">.</span><span class="pln">defaultReadObject</span><span class="pun">();</span><span class="pln">
+
+        </span><span class="com">// Read in capacity</span><span class="pln">
+        s</span><span class="pun">.</span><span class="pln">readInt</span><span class="pun">();</span><span class="pln"> </span><span class="com">// ignored</span><span class="pln">
+
+        </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">size </span><span class="pun">&gt;</span><span class="pln"> </span><span class="lit">0</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            </span><span class="com">// be like clone(), allocate array based upon size not capacity</span><span class="pln">
+            ensureCapacityInternal</span><span class="pun">(</span><span class="pln">size</span><span class="pun">);</span><span class="pln">
+
+            </span><span class="typ">Object</span><span class="pun">[]</span><span class="pln"> a </span><span class="pun">=</span><span class="pln"> elementData</span><span class="pun">;</span><span class="pln">
+            </span><span class="com">// Read in all elements in the proper order.</span><span class="pln">
+            </span><span class="kwd">for</span><span class="pln"> </span><span class="pun">(</span><span class="kwd">int</span><span class="pln"> i</span><span class="pun">=</span><span class="lit">0</span><span class="pun">;</span><span class="pln"> i</span><span class="pun">&lt;</span><span class="pln">size</span><span class="pun">;</span><span class="pln"> i</span><span class="pun">++)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                a</span><span class="pun">[</span><span class="pln">i</span><span class="pun">]</span><span class="pln"> </span><span class="pun">=</span><span class="pln"> s</span><span class="pun">.</span><span class="pln">readObject</span><span class="pun">();</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln">
+    </span><span class="pun">}</span></code></pre>
+<p>code 6</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd">private</span><span class="pln"> </span><span class="kwd">void</span><span class="pln"> writeObject</span><span class="pun">(</span><span class="pln">java</span><span class="pun">.</span><span class="pln">io</span><span class="pun">.</span><span class="typ">ObjectOutputStream</span><span class="pln"> s</span><span class="pun">)</span><span class="pln">
+        </span><span class="kwd">throws</span><span class="pln"> java</span><span class="pun">.</span><span class="pln">io</span><span class="pun">.</span><span class="typ">IOException</span><span class="pun">{</span><span class="pln">
+        </span><span class="com">// Write out element count, and any hidden stuff</span><span class="pln">
+        </span><span class="kwd">int</span><span class="pln"> expectedModCount </span><span class="pun">=</span><span class="pln"> modCount</span><span class="pun">;</span><span class="pln">
+        s</span><span class="pun">.</span><span class="pln">defaultWriteObject</span><span class="pun">();</span><span class="pln">
+
+        </span><span class="com">// Write out size as capacity for behavioural compatibility with clone()</span><span class="pln">
+        s</span><span class="pun">.</span><span class="pln">writeInt</span><span class="pun">(</span><span class="pln">size</span><span class="pun">);</span><span class="pln">
+
+        </span><span class="com">// Write out all elements in the proper order.</span><span class="pln">
+        </span><span class="kwd">for</span><span class="pln"> </span><span class="pun">(</span><span class="kwd">int</span><span class="pln"> i</span><span class="pun">=</span><span class="lit">0</span><span class="pun">;</span><span class="pln"> i</span><span class="pun">&lt;</span><span class="pln">size</span><span class="pun">;</span><span class="pln"> i</span><span class="pun">++)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            s</span><span class="pun">.</span><span class="pln">writeObject</span><span class="pun">(</span><span class="pln">elementData</span><span class="pun">[</span><span class="pln">i</span><span class="pun">]);</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln">
+
+        </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">modCount </span><span class="pun">!=</span><span class="pln"> expectedModCount</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            </span><span class="kwd">throw</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">ConcurrentModificationException</span><span class="pun">();</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln">
+    </span><span class="pun">}</span></code></pre>
+<p>那么为什么ArrayList要用这种方式来实现序列化呢？</p>
+<h3>why transient</h3>
+<p>ArrayList实际上是动态数组，每次在放满以后自动增长设定的长度值，如果数组自动增长长度设为100，而实际只放了一个元素，那就会序列化
+99个null元素。为了保证在序列化的时候不会将这么多null同时进行序列化，ArrayList把元素数组设置为transient。</p>
+<h3>why writeObject and readObject</h3>
+<p>前面说过，为了防止一个包含大量空对象的数组被序列化，为了优化存储，所以，ArrayList使用<code>transient</code>来声明<code>elementData</code>。 但是，作为一个集合，在序列化过程中还必须保证其中的元素可以被持久化下来，所以，通过重写<code>writeObject</code> 和 <code>readObject</code>方法的方式把其中的元素保留下来。</p>
+<p><code>writeObject</code>方法把<code>elementData</code>数组中的元素遍历的保存到输出流（ObjectOutputStream）中。</p>
+<p><code>readObject</code>方法从输入流（ObjectInputStream）中读出对象并保存赋值到<code>elementData</code>数组中。</p>
+<p>至此，我们先试着来回答刚刚提出的问题：</p>
+<blockquote>
+<p>如何自定义的序列化和反序列化策略</p>
+</blockquote>
+<p>答：可以通过在被序列化的类中增加writeObject 和 readObject方法。那么问题又来了：</p>
+<blockquote>
+<p>虽然ArrayList中写了writeObject 和 readObject 方法，但是这两个方法并没有显示的被调用啊。</p>
+<p><strong>那么如果一个类中包含writeObject 和 readObject 方法，那么这两个方法是怎么被调用的呢?</strong></p>
+</blockquote>
+<h2>ObjectOutputStream</h2>
+<p>从code 
+4中，我们可以看出，对象的序列化过程通过ObjectOutputStream和ObjectInputputStream来实现的，那么带着刚刚的问
+题，我们来分析一下ArrayList中的writeObject 和 readObject 方法到底是如何被调用的呢？</p>
+<p>为了节省篇幅，这里给出ObjectOutputStream的writeObject的调用栈：</p>
+<p><code>writeObject ---&gt; writeObject0 ---&gt;writeOrdinaryObject---&gt;writeSerialData---&gt;invokeWriteObject</code></p>
+<p>这里看一下invokeWriteObject：</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd">void</span><span class="pln"> invokeWriteObject</span><span class="pun">(</span><span class="typ">Object</span><span class="pln"> obj</span><span class="pun">,</span><span class="pln"> </span><span class="typ">ObjectOutputStream</span><span class="pln"> </span><span class="kwd">out</span><span class="pun">)</span><span class="pln">
+        </span><span class="kwd">throws</span><span class="pln"> </span><span class="typ">IOException</span><span class="pun">,</span><span class="pln"> </span><span class="typ">UnsupportedOperationException</span><span class="pln">
+    </span><span class="pun">{</span><span class="pln">
+        </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">writeObjectMethod </span><span class="pun">!=</span><span class="pln"> </span><span class="kwd">null</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            </span><span class="kwd">try</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                writeObjectMethod</span><span class="pun">.</span><span class="pln">invoke</span><span class="pun">(</span><span class="pln">obj</span><span class="pun">,</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">Object</span><span class="pun">[]{</span><span class="pln"> </span><span class="kwd">out</span><span class="pln"> </span><span class="pun">});</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">catch</span><span class="pln"> </span><span class="pun">(</span><span class="typ">InvocationTargetException</span><span class="pln"> ex</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                </span><span class="typ">Throwable</span><span class="pln"> th </span><span class="pun">=</span><span class="pln"> ex</span><span class="pun">.</span><span class="pln">getTargetException</span><span class="pun">();</span><span class="pln">
+                </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">th </span><span class="kwd">instanceof</span><span class="pln"> </span><span class="typ">IOException</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                    </span><span class="kwd">throw</span><span class="pln"> </span><span class="pun">(</span><span class="typ">IOException</span><span class="pun">)</span><span class="pln"> th</span><span class="pun">;</span><span class="pln">
+                </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">else</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                    throwMiscException</span><span class="pun">(</span><span class="pln">th</span><span class="pun">);</span><span class="pln">
+                </span><span class="pun">}</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">catch</span><span class="pln"> </span><span class="pun">(</span><span class="typ">IllegalAccessException</span><span class="pln"> ex</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                </span><span class="com">// should not occur, as access checks have been suppressed</span><span class="pln">
+                </span><span class="kwd">throw</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">InternalError</span><span class="pun">(</span><span class="pln">ex</span><span class="pun">);</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">else</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+            </span><span class="kwd">throw</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">UnsupportedOperationException</span><span class="pun">();</span><span class="pln">
+        </span><span class="pun">}</span><span class="pln">
+    </span><span class="pun">}</span></code></pre>
+<p>其中<code>writeObjectMethod.invoke(obj, new Object[]{ out });</code>是关键，通过反射的方式调用writeObjectMethod方法。官方是这么解释这个writeObjectMethod的：</p>
+<blockquote>
+<p>class-defined writeObject method, or null if none</p>
+</blockquote>
+<p>在我们的例子中，这个方法就是我们在ArrayList中定义的writeObject方法。通过反射的方式被调用了。</p>
+<p>至此，我们先试着来回答刚刚提出的问题：</p>
+<blockquote>
+<p><strong>如果一个类中包含writeObject 和 readObject 方法，那么这两个方法是怎么被调用的?</strong></p>
+</blockquote>
+<p>答：在使用ObjectOutputStream的writeObject方法和ObjectInputStream的readObject方法时，会通过反射的方式调用。</p>
+<hr>
+<p>至此，我们已经介绍完了ArrayList的序列化方式。那么，不知道有没有人提出这样的疑问：</p>
+<div id="What Serializable Did"></div>
+<blockquote>
+<p><strong>Serializable明明就是一个空的接口，它是怎么保证只有实现了该接口的方法才能进行序列化与反序列化的呢？</strong></p>
+</blockquote>
+<p>Serializable接口的定义：</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd">public</span><span class="pln"> </span><span class="kwd">interface</span><span class="pln"> </span><span class="typ">Serializable</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+</span><span class="pun">}</span></code></pre>
+<p>读者可以尝试把code 1中的继承Serializable的代码去掉，再执行code 2，会抛出<code>java.io.NotSerializableException</code>。</p>
+<p>其实这个问题也很好回答，我们再回到刚刚ObjectOutputStream的writeObject的调用栈：</p>
+<p><code>writeObject ---&gt; writeObject0 ---&gt;writeOrdinaryObject---&gt;writeSerialData---&gt;invokeWriteObject</code></p>
+<p>writeObject0方法中有这么一段代码：</p>
+<pre class="prettyprint prettyprinted" style=""><code><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">obj </span><span class="kwd">instanceof</span><span class="pln"> </span><span class="typ">String</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                writeString</span><span class="pun">((</span><span class="typ">String</span><span class="pun">)</span><span class="pln"> obj</span><span class="pun">,</span><span class="pln"> unshared</span><span class="pun">);</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">else</span><span class="pln"> </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">cl</span><span class="pun">.</span><span class="pln">isArray</span><span class="pun">())</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                writeArray</span><span class="pun">(</span><span class="pln">obj</span><span class="pun">,</span><span class="pln"> desc</span><span class="pun">,</span><span class="pln"> unshared</span><span class="pun">);</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">else</span><span class="pln"> </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">obj </span><span class="kwd">instanceof</span><span class="pln"> </span><span class="typ">Enum</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                writeEnum</span><span class="pun">((</span><span class="typ">Enum</span><span class="pun">&lt;?&gt;)</span><span class="pln"> obj</span><span class="pun">,</span><span class="pln"> desc</span><span class="pun">,</span><span class="pln"> unshared</span><span class="pun">);</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">else</span><span class="pln"> </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">obj </span><span class="kwd">instanceof</span><span class="pln"> </span><span class="typ">Serializable</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                writeOrdinaryObject</span><span class="pun">(</span><span class="pln">obj</span><span class="pun">,</span><span class="pln"> desc</span><span class="pun">,</span><span class="pln"> unshared</span><span class="pun">);</span><span class="pln">
+            </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">else</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">extendedDebugInfo</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                    </span><span class="kwd">throw</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">NotSerializableException</span><span class="pun">(</span><span class="pln">
+                        cl</span><span class="pun">.</span><span class="pln">getName</span><span class="pun">()</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> </span><span class="str">"\n"</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> debugInfoStack</span><span class="pun">.</span><span class="pln">toString</span><span class="pun">());</span><span class="pln">
+                </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">else</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+                    </span><span class="kwd">throw</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">NotSerializableException</span><span class="pun">(</span><span class="pln">cl</span><span class="pun">.</span><span class="pln">getName</span><span class="pun">());</span><span class="pln">
+                </span><span class="pun">}</span><span class="pln">
+            </span><span class="pun">}</span></code></pre>
+<p>在进行序列化操作时，会判断要被序列化的类是否是Enum、Array和Serializable类型，如果不是则直接抛出<code>NotSerializableException</code>。</p>
+<h2>总结</h2>
+<p>1、如果一个类想被序列化，需要实现Serializable接口。否则将抛出<code>NotSerializableException</code>异常，这是因为，在序列化操作过程中会对类型进行检查，要求被序列化的类必须属于Enum、Array和Serializable类型其中的任何一种。</p>
+<p>2、在变量声明前加上该关键字，可以阻止该变量被序列化到文件中。</p>
+<p>3、在类中增加writeObject 和 readObject 方法可以实现自定义序列化策略</p>
+<h2>参考资料</h2>
+<p><a href="https://www.ibm.com/developerworks/cn/java/j-lo-serial/">Java 序列化的高级认识</a></p>
+<p class="asb-post-footer"><strong>【公告】</strong><a target="_blank" href="http://www.hollischuang.com/%E8%BD%AC%E8%BD%BD%E8%AF%B4%E6%98%8E">版权声明</a></p>(全文完)<center><img src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/qrcode_for_gh_4ebd1b130cbe_430-1.jpg" title="" alt="" width="300px" height="300px">欢迎关注HollisChuang微信公众账号</center>        <div class="gave" style="clear:both">
+            <a href="javascript:;" id="gave">打赏</a>
+            <div class="code" id="wechatCode" style="display: none">
+                <img src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/IMG_11933.jpg" alt="微信扫一扫支付">
+                <div>支付宝扫一扫，打赏作者吧～</div>
+            </div>
+        </div><p class="post-copyright">如未加特殊说明，此网站文章均为原创，转载必须注明出处。<a href="http://www.hollischuang.com/">HollisChuang's Blog</a> » <a href="http://www.hollischuang.com/archives/1140">深入分析Java的序列化与反序列化</a></p>		</article>
+				<div class="article-tags">标签：<a href="http://www.hollischuang.com/archives/tag/arraylist" rel="tag">ArrayList</a><a href="http://www.hollischuang.com/archives/tag/%e5%ba%8f%e5%88%97%e5%8c%96" rel="tag">序列化</a></div>		<div class="action-share bdsharebuttonbox">
+			分享到：<a class="bds_qzone" data-cmd="qzone"></a><a class="bds_tsina" data-cmd="tsina"></a><a class="bds_weixin" data-cmd="weixin"></a><a class="bds_tqq" data-cmd="tqq"></a><a class="bds_sqq" data-cmd="sqq"></a><a class="bds_bdhome" data-cmd="bdhome"></a><a class="bds_tqf" data-cmd="tqf"></a><a class="bds_renren" data-cmd="renren"></a><a class="bds_diandian" data-cmd="diandian"></a><a class="bds_youdao" data-cmd="youdao"></a><a class="bds_ty" data-cmd="ty"></a><a class="bds_kaixin001" data-cmd="kaixin001"></a><a class="bds_taobao" data-cmd="taobao"></a><a class="bds_douban" data-cmd="douban"></a><a class="bds_fbook" data-cmd="fbook"></a><a class="bds_twi" data-cmd="twi"></a><a class="bds_mail" data-cmd="mail"></a><a class="bds_copy" data-cmd="copy"></a><a class="bds_more" data-cmd="more">更多</a> (<a class="bds_count" data-cmd="count"></a>)		</div>
+	<div class="asb asb-post asb-post-02"><script type="text/javascript">
+    /*960*90 创建于 2015-12-11*/
+    var cpro_id = "u2443812";
+</script>
+<script src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/c.js" type="text/javascript"></script><div id="BAIDU_SSP__wrapper_u2443812_0"><iframe id="iframeu2443812_0" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/jcom_002.htm" vspace="0" hspace="0" marginwidth="0" marginheight="0" scrolling="no" style="border:0;vertical-align:bottom;margin:0;width:960px;height:90px" allowtransparency="true" width="960" height="90" align="center,center" frameborder="0"></iframe></div>
+</div>		<div class="relates"><div class="title"><h3>相关推荐</h3></div><ul><li><a href="http://www.hollischuang.com/archives/1158">《成神之路-基础篇》Java基础知识——序列化（已完结）</a></li><li><a href="http://www.hollischuang.com/archives/1150">Java对象的序列化与反序列化</a></li><li><a href="http://www.hollischuang.com/archives/1144">单例与序列化的那些事儿</a></li><li><a href="http://www.hollischuang.com/archives/1786">同步容器（如Vector）并不是所有操作都线程安全！~</a></li><li><a href="http://www.hollischuang.com/archives/1606">排名Top 16的Java实用类库</a></li><li><a href="http://www.hollischuang.com/archives/1561">Java开发必须掌握的线上问题排查命令</a></li><li><a href="http://www.hollischuang.com/archives/1360">Java开发人员最常犯的10个错误</a></li><li><a href="http://www.hollischuang.com/archives/1349">ArrayList vs LinkedList vs Vector 区别</a></li></ul></div><a name="comments"></a>
+<div id="SOHUCS" sid="1140"></div><script>
+if(window.screen.width > 960) {
+    (function(){var appid = 'cyrFnsBtC',conf = 'prod_957fbae232bab98fce4551fdee712071';
+        var doc = document,
+        s = doc.createElement('script'),
+        h = doc.getElementsByTagName('head')[0] || doc.head || doc.documentElement;
+        s.type = 'text/javascript';
+        s.charset = 'utf-8';
+        s.src =  'http://assets.changyan.sohu.com/upload/changyan.js?conf=' + conf + '&appid=' + appid;
+        h.insertBefore(s,h.firstChild);
+    })()
+    } else {
+    (function(){
+        var expire_time = parseInt((new Date()).getTime()/(5*60*1000));
+        var head = document.head || document.getElementsByTagName("head")[0] || document.documentElement;
+        var script_version = document.createElement("script"),script_cyan = document.createElement("script");
+        script_version.type = script_cyan.type = "text/javascript";
+        script_version.charset = script_cyan.charset = "utf-8";
+        script_version.onload = function(){
+            script_cyan.id = 'changyan_mobile_js';
+            script_cyan.src = 'http://changyan.itc.cn/upload/mobile/wap-js/changyan_mobile.js?client_id=cyrFnsBtC&conf=prod_957fbae232bab98fce4551fdee712071&version=cyan_resource_version';
+            head.insertBefore(script_cyan, head.firstChild);
+        };
+        script_version.src = 'http://changyan.sohu.com/upload/mobile/wap-js/version.js?_='+expire_time;
+        head.insertBefore(script_version, head.firstChild);
+    })();
+}</script>
+<div id="ds-ssr" style="display:none">
+		            <ol id="commentlist">
+                		<li class="comment even thread-even depth-1" id="li-comment-174">
+			<article id="comment-174" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">爱无赦</span> on <a rel="nofollow" href="http://www.hollischuang.com/archives/1140#comment-174"><time pubdate="" datetime="2016-02-04T16:04:54+00:00">2016年2月4日 at 下午4:04</time></a> <span class="says">said:</span>					</cite>
+				</footer>
+	
+				<div class="comment-content"><p>牛逼~</p>
+</div>
+				
+			</article>
+		</li><!-- #comment-## -->
+		<li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-181">
+			<article id="comment-181" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">Zachary1333在搜狐</span> on <a rel="nofollow" href="http://www.hollischuang.com/archives/1140#comment-181"><time pubdate="" datetime="2016-02-07T17:52:48+00:00">2016年2月7日 at 下午5:52</time></a> <span class="says">said:</span>					</cite>
+				</footer>
+	
+				<div class="comment-content"><p>亮哥，这个代码块彩色是用的插件吗</p>
+</div>
+				
+			</article>
+		<ul class="children">
+		<li class="comment even depth-2" id="li-comment-182">
+			<article id="comment-182" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">HollisChuang</span> on <a rel="nofollow" href="http://www.hollischuang.com/archives/1140#comment-182"><time pubdate="" datetime="2016-02-08T11:01:39+00:00">2016年2月8日 at 上午11:01</time></a> <span class="says">said:</span>					</cite>
+				</footer>
+	
+				<div class="comment-content"><p>markdown</p>
+</div>
+				
+			</article>
+		</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment odd alt thread-even depth-1" id="li-comment-550">
+			<article id="comment-550" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">信念</span> on <a rel="nofollow" href="http://www.hollischuang.com/archives/1140#comment-550"><time pubdate="" datetime="2017-04-11T15:49:31+00:00">2017年4月11日 at 下午3:49</time></a> <span class="says">said:</span>					</cite>
+				</footer>
+	
+				<div class="comment-content"><p>亮哥,最后总结里面的要求被序列化的类必须属于Enum，Array和Serializable类型其中的任何一种中的array应该是数组啊,怎么让一个类属性数组类型呢,这里有点小白.</p>
+</div>
+				
+			</article>
+		</li><!-- #comment-## -->
+		<li class="comment even thread-odd thread-alt depth-1" id="li-comment-549">
+			<article id="comment-549" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">信念</span> on <a rel="nofollow" href="http://www.hollischuang.com/archives/1140#comment-549"><time pubdate="" datetime="2017-04-11T15:51:35+00:00">2017年4月11日 at 下午3:51</time></a> <span class="says">said:</span>					</cite>
+				</footer>
+	
+				<div class="comment-content"><p>上面被转义了:<br>
+要求被序列化的类必须属于Enum，Array和Serializable类型其中的任何一种。我想问的是怎么才能让那个一个类的类型是属于Array类型,小白.</p>
+</div>
+				
+			</article>
+		</li><!-- #comment-## -->
+            </ol>
+
+		    </div>
+	</div>
+	</div>
+			
+	
+	<aside class="sidebar">
+<div class="widget widget_ui_posts"><h3><font color="#00BFFF">【置顶推荐】</font></h3><ul class="nopic"><li><a href="http://www.hollischuang.com/archives/1158"><span class="text">《成神之路-基础篇》Java基础知识——序列化（已完结）</span><span class="muted">2016-02-18</span><span class="muted">评论(1)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/1132"><span class="text">大型网站架构技术一览</span><span class="muted">2016-02-03</span><span class="muted">评论(1)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/1036"><span class="text">[10.17日更新]各大互联网公司架构演进之路汇总</span><span class="muted">2016-01-19</span><span class="muted">评论(6)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/1003"><span class="text">《成神之路-基础篇》JVM——Java内存相关(已完结)</span><span class="muted">2016-01-17</span><span class="muted">评论(3)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/966"><span class="text">Java开发必装的IntelliJ IDEA插件</span><span class="muted">2016-01-13</span><span class="muted">评论(4)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/800"><span class="text">Java开发必会的Linux命令</span><span class="muted">2015-12-15</span><span class="muted">评论(14)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/728"><span class="text">大型网站架构演化历程</span><span class="muted">2015-12-09</span><span class="muted">评论(12)</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/489"><span class="text">Java工程师成神之路~</span><span class="muted">2015-08-01</span><span class="muted">评论(33)</span></a></li>
+</ul></div><div class="widget widget_ui_posts affix-top" style="top: 0px;"><h3>【猜你喜欢】</h3><ul class="nopic"><li><a href="http://www.hollischuang.com/archives/228"><span class="text">Java泛型用法总结</span><span class="muted">2015-04-18</span><span class="muted">评论()</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/339"><span class="text">[译]Java Web应用程序初级知识</span><span class="muted">2016-02-25</span><span class="muted">评论()</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/33"><span class="text">Java中的fail-fast机制</span><span class="muted">2015-04-13</span><span class="muted">评论()</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/1273"><span class="text">Zookeeper介绍（一）——背景知识</span><span class="muted">2016-03-12</span><span class="muted">评论()</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/222"><span class="text">[转]Java的可变类型参数</span><span class="muted">2015-04-18</span><span class="muted">评论()</span></a></li>
+<li><a href="http://www.hollischuang.com/archives/205"><span class="text">[转+注]单例模式的七种写法</span><span class="muted">2015-04-18</span><span class="muted">评论(2)</span></a></li>
+</ul></div><div class="widget widget_ui_ads"><div class="item"><script type="text/javascript">
+    /*360*300 创建于 2015-12-11*/
+    var cpro_id = "u2443824";
+</script>
+<script src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/c.js" type="text/javascript"></script><div id="BAIDU_SSP__wrapper_u2443824_0"><iframe id="iframeu2443824_0" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/jcom_003.htm" vspace="0" hspace="0" marginwidth="0" marginheight="0" scrolling="no" style="border:0;vertical-align:bottom;margin:0;width:360px;height:300px" allowtransparency="true" width="360" height="300" align="center,center" frameborder="0"></iframe></div>
+</div></div><div class="widget widget_ui_tags"><h3>热门标签</h3><div class="items"><a href="http://www.hollischuang.com/archives/tag/webx">webx (12)</a><a href="http://www.hollischuang.com/archives/tag/%e4%ba%8b%e5%8a%a1">事务 (11)</a><a href="http://www.hollischuang.com/archives/tag/java%e5%b7%a5%e7%a8%8b%e5%b8%88%e6%88%90%e7%a5%9e%e4%b9%8b%e8%b7%af">Java工程师成神之路 (10)</a><a href="http://www.hollischuang.com/archives/tag/java%e5%91%bd%e4%bb%a4%e5%ad%a6%e4%b9%a0%e7%b3%bb%e5%88%97">Java命令学习系列 (9)</a><a href="http://www.hollischuang.com/archives/tag/string">String (8)</a><a href="http://www.hollischuang.com/archives/tag/%e5%88%86%e5%b8%83%e5%bc%8f">分布式 (8)</a><a href="http://www.hollischuang.com/archives/tag/webx%e5%ad%a6%e4%b9%a0%e7%b3%bb%e5%88%97">webx学习系列 (6)</a><a href="http://www.hollischuang.com/archives/tag/generic">泛型 (6)</a><a href="http://www.hollischuang.com/archives/tag/zookeeper">zookeeper (6)</a><a href="http://www.hollischuang.com/archives/tag/java">Java (5)</a><a href="http://www.hollischuang.com/archives/tag/%e5%8d%95%e5%85%83%e6%b5%8b%e8%af%95">单元测试 (5)</a><a href="http://www.hollischuang.com/archives/tag/%e9%94%81">锁 (5)</a><a href="http://www.hollischuang.com/archives/tag/%e5%b7%a5%e5%8e%82%e6%a8%a1%e5%bc%8f">工厂模式 (5)</a><a href="http://www.hollischuang.com/archives/tag/linux">linux (4)</a><a href="http://www.hollischuang.com/archives/tag/%e5%ba%8f%e5%88%97%e5%8c%96">序列化 (4)</a><a href="http://www.hollischuang.com/archives/tag/java-7-%e6%ba%90%e7%a0%81%e5%ad%a6%e4%b9%a0%e7%b3%bb%e5%88%97">Java 7 源码学习系列 (4)</a><a href="http://www.hollischuang.com/archives/tag/%e7%83%ad%e9%83%a8%e7%bd%b2">热部署 (4)</a><a href="http://www.hollischuang.com/archives/tag/%e5%9b%be%e8%af%b4java">图说Java (4)</a><a href="http://www.hollischuang.com/archives/tag/%e9%9d%a2%e8%af%95%e9%a2%98">面试题 (3)</a><a href="http://www.hollischuang.com/archives/tag/%e6%9e%9a%e4%b8%be">枚举 (3)</a><a href="http://www.hollischuang.com/archives/tag/jvm">jvm (3)</a><a href="http://www.hollischuang.com/archives/tag/%e5%8d%95%e4%be%8b">单例 (3)</a><a href="http://www.hollischuang.com/archives/tag/%e7%bd%91%e7%ab%99%e6%9e%b6%e6%9e%84">网站架构 (3)</a><a href="http://www.hollischuang.com/archives/tag/%e5%a5%bd%e4%b9%a6%e6%8e%a8%e8%8d%90">好书推荐 (3)</a><a href="http://www.hollischuang.com/archives/tag/mysql">MySql (3)</a><a href="http://www.hollischuang.com/archives/tag/fail-fast">fail-fast (2)</a><a href="http://www.hollischuang.com/archives/tag/sql">sql (2)</a><a href="http://www.hollischuang.com/archives/tag/jre">JRE (2)</a><a href="http://www.hollischuang.com/archives/tag/classloader">ClassLoader (2)</a><a href="http://www.hollischuang.com/archives/tag/%e7%ba%bf%e7%a8%8b%e5%ae%89%e5%85%a8">线程安全 (2)</a></div></div></aside></section>
+
+<div class="branding branding-black">
+	<div class="container">
+		<h2>HollisChuang's Blog</h2>
+		<a target="blank" class="btn btn-lg" href="http://mail.qq.com/cgi-bin/qm_share?t=qm_mailme&amp;email=-JSTkJCVj5_UiZ2Sm7yNjdKfk5E">联系我</a><a target="blank" class="btn btn-lg" href="http://www.hollischuang.com/sample-page">关于我</a>	</div>
+</div>
+<footer class="footer">
+	<div class="container">
+		<p>© 2017 <a href="http://www.hollischuang.com/">HollisChuang's Blog</a> &nbsp; <a href="http://www.hollischuang.com/sitemap.xml">网站地图</a>|<a href="http://www.aliyun.com/" target="_blank">阿里云</a>|<a href="http://www.alibaba.com/" target="_blank">Alibaba.com</a>|<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1256611093'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s4.cnzz.com/z_stat.php%3Fid%3D1256611093%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script><span id="cnzz_stat_icon_1256611093"><a href="http://www.cnzz.com/stat/website.php?web_id=1256611093" target="_blank" title="站长统计"><img src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/pic.gif" vspace="0" hspace="0" border="0"></a></span><script src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/z_stat.php" type="text/javascript"></script><script src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/core.php" charset="utf-8" type="text/javascript"></script></p>
+		<meta name="baidu_union_verify" content="4a8bd1a9881911c8738ed782f83b5757">	</div>
+</footer>
+
+<script>
+window.jsui={
+    www: 'http://www.hollischuang.com',
+    uri: 'http://www.hollischuang.com/wp-content/themes/dux',
+    ver: 'THEME_VERSION',
+	roll: ["2","6"],
+    ajaxpager: '2',
+    url_rp: 'http://www.hollischuang.com/sample-page'
+};
+</script>
+<!--FOOTER_CODE_START-->
+<meta name="baidu_union_verify" content="4a8bd1a9881911c8738ed782f83b5757">
+<!--FOOTER_CODE_END-->
+<link rel="stylesheet" id="wechat-reward-css" href="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wechat-reward.css" type="text/css" media="all">
+<script type="text/javascript" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/soundmanager2.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var wp_player_params = {"swf":"http:\/\/www.hollischuang.com\/wp-content\/plugins\/wp-player\/js\/","url":"http:\/\/www.hollischuang.com\/wp-admin\/admin-ajax.php","nonce":"c4a1037915","single":"true"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wp-player.js"></script>
+<script type="text/javascript" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/bootstrap.js"></script>
+<script type="text/javascript" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/loader.js"></script>
+<script type="text/javascript" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/wechat-reward.js"></script>
+<script type="text/javascript" src="%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-HollisChuang%27s%20Blog_files/markdown.js"></script>
+
+
+
+
+
+    <div class="m-mask"></div>    <div class="rollbar"><ul><li><a href="javascript:(scrollTo('#comments',-15));"><i class="fa fa-comments"></i></a><h6>去评论<i></i></h6></li><li><a href="javascript:(scrollTo());"><i class="fa fa-angle-up"></i></a><h6>去顶部<i></i></h6></li>    </ul></div></body></html>
+<!-- Dynamic page generated in 0.365 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2017-07-22 13:00:32 -->
+<!-- super cache -->
